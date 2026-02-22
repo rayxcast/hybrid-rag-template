@@ -60,7 +60,7 @@ Infrastructure:
 
 ### 1. Clone
 
-git clone https://github.com/YOUR_USERNAME/hybrid-rag-template.git
+git clone https://github.com/rayxcast/hybrid-rag-template.git
 cd hybrid-rag-template
 
 ### 2. Create .env
