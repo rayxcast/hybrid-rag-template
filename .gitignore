@@ -1,0 +1,65 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# -------------------------
+# Virtual environments
+# -------------------------
+.venv/
+venv/
+env/
+
+# -------------------------
+# Environment files
+# -------------------------
+.env
+.env.*
+
+# -------------------------
+# Docker
+# -------------------------
+*.log
+docker-data/
+qdrant_data/
+redis_data/
+
+# -------------------------
+# HuggingFace / model cache
+# -------------------------
+.cache/
+.huggingface/
+**/.cache/
+
+# -------------------------
+# OS
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# IDE
+# -------------------------
+.vscode/
+.idea/
+
+# -------------------------
+# Test artifacts
+# -------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# -------------------------
+# Data (optional)
+# -------------------------
+data/*.pdf
+data/*.txt
+tst.txt
+app/evaluation

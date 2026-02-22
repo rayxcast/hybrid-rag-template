@@ -1,0 +1,10 @@
+.venv
+__pycache__
+.git
+.env
+.ipynb_checkpoints
+data/
+# Ignore any downloaded models
+models/
+huggingface_cache/
+tst.txt
