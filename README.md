@@ -88,4 +88,31 @@ POST `/query`
 
 docker compose run --rm eval 
 
+## Evaluation Dataset Source
+
+Evaluation questions are derived from the public 10-K filing of Alphabet Inc.
+
+Official filing source: Alphabet 10-k Annual Report Feb 5, 2026
+https://abc.xyz/investor/sec-filings/
+(Download Anual Fillings for 2026)
+
+The PDF is not included in this repository.
+
+## Benchmark Results (v1.0)
+
+Evaluation Set:
+- 25 questions
+  - 5 adversarial
+  - 5 unanswerable
+  - 5 paraphrased
+  - 5 multi-hop
+  - 5 numerical precision
+
+Results:
+- Accuracy: 96.00%
+- Avg Retrieval Time: 0.67s
+- Avg Rerank Time: 1.03s
+- Avg Generation Time: 6.39s
+- Avg Judge Time: 5.93s
+
 ---

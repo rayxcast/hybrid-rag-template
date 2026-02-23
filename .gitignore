@@ -62,4 +62,3 @@ htmlcov/
 data/*.pdf
 data/*.txt
 tst.txt
-app/evaluation

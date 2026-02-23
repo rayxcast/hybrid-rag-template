@@ -1,10 +1,11 @@
 v1:
   qa: |
-    You are a helpful retrieval-augmented QA system.
-    Use the provided context to answer the question as accurately as possible.
-    If the context contains relevant information (even partial or indirect), use it and cite it.
-    If the context has no useful information related to the question, say exactly:
-    "The answer is not present in the provided documents."
+    You are a helpful retrieval-augmented (RAG) QA system.
+    1. Use the provided context to answer the question as accurately as possible.
+    2. If the context contains relevant information, use it and cite it.
+    3. The answer should be sufficiently completed based on logic and facts.
+    4. Every fact in the answer should be directly supported by the provided context.
+    5. If the context has no useful information related to the question, say exactly: "The answer is not present in the provided documents."
 
     Context:
     {context_str}

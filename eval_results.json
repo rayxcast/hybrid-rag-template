@@ -1,0 +1,340 @@
+{
+  "results": [
+    {
+      "id": "adv_1",
+      "question": "What is the revenue figure for Alphabet that might be confused with net income in 2025?",
+      "answer": "402,836 (in millions) \u2014 Alphabet\u2019s total revenues for 2025.",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.92,
+        "rerank_time": 0.99,
+        "generation_time": 6.22,
+        "judge_time": 4.4
+      },
+      "passed": true
+    },
+    {
+      "id": "adv_2",
+      "question": "Does the report mention any revenue from Google Cloud that exceeds total revenue?",
+      "answer": "No. In all years shown, Google Cloud revenue is much smaller than total revenues (e.g., 58,705 million for Google Cloud vs 402,836 million total in 2025; 43,229 million vs 350,018 million in 2024; 33,088 million vs 307,394 million in 2023). This indicates Google Cloud revenue does not exceed total revenue.",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.52,
+        "rerank_time": 0.88,
+        "generation_time": 6.45,
+        "judge_time": 6.04
+      },
+      "passed": true
+    },
+    {
+      "id": "adv_3",
+      "question": "What is the total assets if we misread liabilities as assets?",
+      "answer": "- 2024: Total assets would be 450,256 + 125,172 = 575,428.\n  - (Assets: 450,256; Liabilities: 125,172)\n- 2025: Total assets would be 595,281 + 180,016 = 775,297.\n  - (Assets: 595,281; Liabilities: 180,016)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.56,
+        "rerank_time": 0.97,
+        "generation_time": 10.14,
+        "judge_time": 9.93
+      },
+      "passed": true
+    },
+    {
+      "id": "adv_4",
+      "question": "Is there a note about revenue recognition that could be misinterpreted?",
+      "answer": "Yes. In Note 1 (Revenue Recognition), the company explains how advertising revenues are recognized, including a principal vs. agent distinction for Google Network properties. It states that:\n\n- For ads placed on Google Network properties, the company evaluates whether it is the principal (report revenues on a gross basis) or the agent (report revenues on a net basis).\n- Generally, advertising revenues on Google Network properties are reported on a gross basis, with amounts billed to customers recorded as revenues and amounts paid to Google Network partners recorded as cost of revenues.\n- If Alphabet is not the principal, the revenues are reported net.\n\nThis principal/agent nuance could be misinterpreted if one assumes all Google Network revenues are gross, since the note explicitly allows net presentation when Alphabet is not the principal. The note also describes timing for recognition of performance vs. brand advertising, which adds to potential confusion if read without the full context.\n\nSource: Alphabet Inc., Note 1. Revenue Recognition.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.57,
+        "rerank_time": 1.21,
+        "generation_time": 13.0,
+        "judge_time": 9.42
+      },
+      "passed": true
+    },
+    {
+      "id": "adv_5",
+      "question": "What revenue is reported for a non-existent segment?",
+      "answer": "The answer is not present in the provided documents.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.5,
+        "rerank_time": 1.52,
+        "generation_time": 3.16,
+        "judge_time": 8.7
+      },
+      "passed": true
+    },
+    {
+      "id": "una_1",
+      "question": "What is Alphabet's revenue projected for 2026?",
+      "answer": "The answer is not present in the provided documents.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.45,
+        "rerank_time": 1.63,
+        "generation_time": 4.16,
+        "judge_time": 5.52
+      },
+      "passed": true
+    },
+    {
+      "id": "una_2",
+      "question": "Who is the CEO of Alphabet in 2028?",
+      "answer": "The answer is not present in the provided documents.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.43,
+        "rerank_time": 0.91,
+        "generation_time": 5.32,
+        "judge_time": 10.54
+      },
+      "passed": false
+    },
+    {
+      "id": "una_3",
+      "question": "What are the details of the 2026 acquisition?",
+      "answer": "Here are the 2026 acquisitions and their key details from the provided context:\n\n- Wiz (acquired by Alphabet)\n  - Agreement: Definitive agreement in March 2025 to acquire Wiz, Inc. for $32.0 billion in an all-cash transaction.\n  - Timeline: Expected to close in 2026, subject to customary closing conditions including regulatory approvals.\n  - Scope/Impact: Upon close, Wiz will be part of Google Cloud.\n  - Status notes: The acquisition is described under Pending Acquisitions in the 10-K.\n\n- Intersect (acquired by Alphabet)\n  - Agreement: Definitive agreement in December 2025 to acquire Intersect for $4.8 billion in cash, plus the assumption of debt.\n  - Timeline: Expected to close in the first half of 2026, subject to customary closing conditions.\n  - Status notes: Also noted under Pending Acquisitions in the 10-K.\n\nBoth acquisitions are expected to close in 2026 and are contingent on regulatory approvals and other customary closing conditions.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.98,
+        "rerank_time": 0.96,
+        "generation_time": 10.05,
+        "judge_time": 10.03
+      },
+      "passed": true
+    },
+    {
+      "id": "una_4",
+      "question": "How many employees does Alphabet have in 2030?",
+      "answer": "The answer is not present in the provided documents.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 1.17,
+        "rerank_time": 0.97,
+        "generation_time": 6.47,
+        "judge_time": 6.14
+      },
+      "passed": true
+    },
+    {
+      "id": "una_5",
+      "question": "What is the stock price on February 23, 2026?",
+      "answer": "The answer is not present in the provided documents.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.45,
+        "rerank_time": 0.99,
+        "generation_time": 3.23,
+        "judge_time": 3.52
+      },
+      "passed": true
+    },
+    {
+      "id": "par_1",
+      "question": "Can you tell me Alphabet's total earnings in 2025?",
+      "answer": "Alphabet's total earnings (net income) in 2025 were $132,170 million ($132.17 billion) for the year ended December 31, 2025. This is shown as net income in the Consolidated Statements of Income.",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.7,
+        "rerank_time": 0.93,
+        "generation_time": 5.02,
+        "judge_time": 4.1
+      },
+      "passed": true
+    },
+    {
+      "id": "par_2",
+      "question": "What amount did Alphabet make from sales in the year 2025?",
+      "answer": "Alphabet's revenue (sales) in 2025 was $402,836 million (about $402.8 billion).",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 1.17,
+        "rerank_time": 0.96,
+        "generation_time": 3.56,
+        "judge_time": 6.47
+      },
+      "passed": true
+    },
+    {
+      "id": "par_3",
+      "question": "Provide the income generated by Alphabet during 2025.",
+      "answer": "Alphabet\u2019s net income for 2025 was $132,170 million. (Consolidated Statements of Income, Year Ended December 31, 2025)",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.39,
+        "rerank_time": 0.91,
+        "generation_time": 3.96,
+        "judge_time": 5.21
+      },
+      "passed": true
+    },
+    {
+      "id": "par_4",
+      "question": "What was the financial inflow for Alphabet in 2025?",
+      "answer": "Net cash provided by operating activities (the cash inflow) in 2025 was $164,713 million (about $164.7 billion). Source: Alphabet Inc. Consolidated Statements of Cash Flows.",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.47,
+        "rerank_time": 0.97,
+        "generation_time": 5.12,
+        "judge_time": 3.79
+      },
+      "passed": true
+    },
+    {
+      "id": "par_5",
+      "question": "How much revenue did Alphabet report for the fiscal year 2025?",
+      "answer": "Alphabet reported revenues of $402,836 million for the year ended December 31, 2025 (about $402.8 billion) [Consolidated Statements of Income].",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.6,
+        "rerank_time": 0.9,
+        "generation_time": 4.03,
+        "judge_time": 5.42
+      },
+      "passed": true
+    },
+    {
+      "id": "mul_1",
+      "question": "What is the revenue growth from 2024 to 2025 for Alphabet?",
+      "answer": "Alphabet\u2019s total revenues grew from $350,018 million in 2024 to $402,836 million in 2025, an increase of $52,818 million (about $52.8 billion), which is roughly a 15.1% rise.",
+      "retrieval_recall": true,
+      "latency": {
+        "retrieval_time": 0.47,
+        "rerank_time": 0.95,
+        "generation_time": 8.21,
+        "judge_time": 3.99
+      },
+      "passed": true
+    },
+    {
+      "id": "mul_2",
+      "question": "Combine the net income and revenue for 2025, what is the total?",
+      "answer": "535,006 million (i.e., $535.0 billion). This is the sum of 2025 revenues (402,836) and net income (132,170) from the figures provided.",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.96,
+        "rerank_time": 0.89,
+        "generation_time": 6.03,
+        "judge_time": 3.83
+      },
+      "passed": true
+    },
+    {
+      "id": "mul_3",
+      "question": "What segment contributed the most to revenue, and what was its amount in 2025?",
+      "answer": "Google Services contributed the most to revenue in 2025, with 342,721 million (in millions).",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.84,
+        "rerank_time": 1.24,
+        "generation_time": 5.45,
+        "judge_time": 6.14
+      },
+      "passed": true
+    },
+    {
+      "id": "mul_4",
+      "question": "Based on assets and liabilities, what is the equity in 2025?",
+      "answer": "$415,265 million (stockholders\u2019 equity) as of December 31, 2025 (about $415.3 billion).",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.64,
+        "rerank_time": 0.99,
+        "generation_time": 4.62,
+        "judge_time": 5.83
+      },
+      "passed": true
+    },
+    {
+      "id": "mul_5",
+      "question": "What is the operating income margin for 2025?",
+      "answer": "32%",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.61,
+        "rerank_time": 0.95,
+        "generation_time": 3.25,
+        "judge_time": 3.79
+      },
+      "passed": true
+    },
+    {
+      "id": "num_1",
+      "question": "What is the exact revenue in millions for Alphabet in 2025?",
+      "answer": "$402,836 million. (From Alphabet's Consolidated Statements of Income for 2025: Revenues = 402,836)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 1.37,
+        "rerank_time": 0.92,
+        "generation_time": 3.24,
+        "judge_time": 3.94
+      },
+      "passed": true
+    },
+    {
+      "id": "num_2",
+      "question": "How many shares outstanding does Alphabet have as of Dec 31, 2025?",
+      "answer": "12,088 million shares outstanding as of December 31, 2025. (From the Consolidated Statements of Stockholders\u2019 Equity: Balance as of December 31, 2025 \u2014 Shares = 12,088.)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.45,
+        "rerank_time": 1.02,
+        "generation_time": 14.17,
+        "judge_time": 5.15
+      },
+      "passed": true
+    },
+    {
+      "id": "num_3",
+      "question": "What is the precise net income per share for 2025?",
+      "answer": "- Basic net income per share (consolidated) for 2025: $10.91\n- Diluted net income per share (consolidated) for 2025: $10.81\n\n(Source: Alphabet Inc. Consolidated Statements of Income for the year ended December 31, 2025)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.51,
+        "rerank_time": 0.99,
+        "generation_time": 13.8,
+        "judge_time": 4.57
+      },
+      "passed": true
+    },
+    {
+      "id": "num_4",
+      "question": "Provide the total assets in exact figures for 2025.",
+      "answer": "$595,281 million. (Total assets for 2025, as of December 31, 2025, from Alphabet Inc. Consolidated Balance Sheets.)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.53,
+        "rerank_time": 0.96,
+        "generation_time": 6.03,
+        "judge_time": 7.27
+      },
+      "passed": true
+    },
+    {
+      "id": "num_5",
+      "question": "What is the cash and cash equivalents amount down to the million?",
+      "answer": "- As of December 31, 2024: $23,466 million\n- As of December 31, 2025: $30,708 million\n\nSource: Alphabet Inc. Consolidated Balance Sheets (Cash and cash equivalents line)",
+      "retrieval_recall": false,
+      "latency": {
+        "retrieval_time": 0.46,
+        "rerank_time": 1.02,
+        "generation_time": 4.99,
+        "judge_time": 4.49
+      },
+      "passed": true
+    }
+  ],
+  "overall": {
+    "avg_accuracy": "96.00%",
+    "avg_latency": {
+      "retrieval_time": 0.67,
+      "rerank_time": 1.03,
+      "generation_time": 6.39,
+      "judge_time": 5.93
+    },
+    "total_retrieval_recall": 8,
+    "total_passed": 24
+  }
+}
