@@ -19,9 +19,17 @@ class AppSettings(BaseSettings):
     SIMILARITY_TOP_K: int = 20
     SIMILARITY_CUTOFF: float = 0.35
 
-    RERANK_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2" # "BAAI/bge-reranker-base" for better quality, but 1.1 GB
+    # RERANK MODELS
+    # Model,Size,Speed,Quality (approx. relative),Multilingual,License,Best for
+    # Xenova/ms-marco-MiniLM-L-6-v2,~80 MB,Very fast,Good / baseline,English-focused,Apache 2.0,"Latency-critical, small infra"
+    # Xenova/ms-marco-MiniLM-L-12-v2,~120 MB,Fast,Good+,English-focused,Apache 2.0,"Slightly better quality, still fast"
+    # jinaai/jina-reranker-v1-tiny-en,~130 MB,Very fast,Good,English,Apache 2.0,Ultra-low latency English
+    # jinaai/jina-reranker-v1-turbo-en,~150 MB,Fast,Good+,English,Apache 2.0,Fast English with better quality
+    # BAAI/bge-reranker-base,~1.04 GB,Medium,Very good,Strong multi,MIT,Balanced production choice
+    # jinaai/jina-reranker-v2-base-multilingual,~1.1 GB,Medium,Excellent,Very strong,CC-BY-NC-4.0,Multilingual production (non-commercial only if strict)
+    RERANK_MODEL: str = "jinaai/jina-reranker-v1-tiny-en" # "light+fast but English only "jinaai/jina-reranker-v1-turbo-en" vs "BAAI/bge-reranker-base" for balanced production choice Multilingual, but much slower + high size (1.1 GB)
     RERANK_TOP_N: int = 15
-    FINAL_CONTEXT_N: int = 7
+    FINAL_CONTEXT_N: int = 6
     
     # Services
     QDRANT_URL: str = "http://qdrant:6333"

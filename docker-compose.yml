@@ -28,9 +28,8 @@ services:
     depends_on:
       - qdrant
       - redis
-    volumes:
-      - .:/app             # For hot-reload in dev (optional: remove in prod)
-      # - hf_cache:/home/appuser/.cache/huggingface
+    # volumes:
+    #   - .:/app             # For hot-reload in dev (optional: remove in prod)
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]  # In PROD, remove "--reload" and "uv run" (use the system python)
 
   eval:
@@ -45,11 +44,10 @@ services:
     depends_on:
       - qdrant
       - redis
-    volumes:
-      - .:/app             # For hot-reload in dev (optional: remove in prod)
+    # volumes:
+      # - .:/app             # For hot-reload in dev (optional: remove in prod)
     command: ["uv", "run", "python", "-m", "app.evaluation.run_eval"]
 
 volumes:
   qdrant_data:
   redis_data:
-  # hf_cache:

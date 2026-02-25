@@ -20,10 +20,6 @@ configure_llm_settings()
 # ------------------------
 # Embeddings (Production Mode)
 # ------------------------
-# Settings.embed_model = OpenAIEmbedding(
-#     model=rag_settings.EMBEDDING_MODEL,
-#     embed_batch_size=rag_settings.EMBED_BATCH_SIZE,  # Critical for ingest speed
-# )
 
 sparse_model = SparseTextEmbedding(
     model_name="prithivida/Splade_PP_en_v1"

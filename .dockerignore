@@ -1,9 +1,23 @@
 .venv
-__pycache__
-.git
-.env
 .ipynb_checkpoints
 data/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+node_modules
+.cache
+.vscode
+.idea
+tests
+data
+*.ipynb
 # Ignore any downloaded models
 models/
 huggingface_cache/
