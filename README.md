@@ -16,35 +16,42 @@ A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template
 ## 🏗 Architecture Diagram
 
 ```mermaid
-
 flowchart TD
 
-User((User)) -->|Query| Embed[Embedding Model]
+%% Entry Layer
+User((User))
+User -->|HTTP Request| API[FastAPI Gateway]
 
-subgraph Vector_Storage [Vector Search]
+%% Cache Layer
+API --> CacheCheck{Redis Semantic Cache}
+CacheCheck -->|Cache Hit| CachedResponse[Cached Response]
+CachedResponse --> User
+CacheCheck -->|Cache Miss| Embed[Embedding Model]
 
-Embed -->|Vector| Qdrant[(Qdrant DB)]
-
-Qdrant -->|Retrieve Top-N| Reranker
-
+%% Hybrid Retrieval
+subgraph Hybrid_Retrieval
+    Embed -->|Dense Vector| VectorDB[(Qdrant - Dense)]
+    API -->|Sparse Query| BM25[(Postgres / BM25 - Sparse)]
+    VectorDB --> Merge[Result Merge]
+    BM25 --> Merge
 end
 
-subgraph Processing [On-Premise Logic]
+%% Reranking
+%% FIX: Wrap text in double quotes to handle parentheses
+Merge --> Reranker["Cross-Encoder Reranker<br/>(ONNX Runtime)"]
+Reranker -->|Top-K Context| Context[Context Builder]
 
-Reranker[Cross-Encoder Reranker \n ONNX Runtime] -->|Score & Filter| Context[Top-K Context]
+%% LLM Routing
+%% FIX: Wrap multi-line text in quotes
+Context --> Prompt["Prompt Assembly<br/>(System + Context + User Query)"]
+Prompt --> Router{LiteLLM Router}
+Router -->|Provider Selection| LLM["LLM Provider<br/>(GPT / Claude / etc.)"]
 
-end
-
-Context -->|Prompt + Context| LiteLLM{LiteLLM Proxy}
-
-subgraph External_Models [LLM Providers]
-
-LiteLLM --> API[LLM Generator \n GPT / Claude / etc.]
-
-end
-
-API -->|Response| User
-
+%% Post-Processing
+LLM --> Guardrails["Output Guardrails<br/>(Grounding + Schema Validation)"]
+Guardrails --> Logger[Structured Logging & Observability]
+Logger --> CacheWrite[Write to Redis Cache]
+CacheWrite --> User
 ```
 
 
