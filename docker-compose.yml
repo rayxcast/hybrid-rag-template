@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack:latest  # Includes RediSearch for vector support
     container_name: redis
     ports:
       - "6379:6379"

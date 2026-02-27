@@ -1,7 +1,7 @@
 from app.rag.generator import LLMGenerator
 from app.rag.reranker import Reranker
 from app.rag.retriever import Retriever
-from app.utils.cache import get, set 
+from app.utils.cache import get_semantic, set_semantic 
 from app.config import app_settings
 import structlog
 import time
@@ -15,13 +15,14 @@ class HybridRAG:
         self.reranker = Reranker(app_settings.RERANK_MODEL)
         self.generator = LLMGenerator()
     
-    async def query(self, query: str, use_cache: bool = True):
+    async def query(self, query: str, cache: bool = True, return_metadata: bool = False):
+        use_cache = False if not cache else self.config.USE_CACHE # override use_cache if cache==false else default self.config.USE_CACHE
         if use_cache:
             # logger.info("Checking cache for query.", query=query)
-            cached = await get(query)
+            cached, score = await get_semantic(query, threshold=0.92)
             if cached:
                 # logger.info("Cached query found. Returning cached.", query=query, cached=cached)
-                return {**cached, "cached": True}
+                return {**cached, "cached": True, "score": score}
         
         start = time.time()
         # logger.info("Retrieving nodes for query...")
@@ -47,23 +48,30 @@ class HybridRAG:
         result = {
             "answer": response["answer"],
             "sources": response["sources"],
-            "retrieved_nodes": retrieved_nodes,
-            "reranked_nodes": reranked_nodes,
             "mode": self.config.RETRIEVAL_MODE,
-            "cached": False,
-            "latency": {
-                "retrieval_time": round(retrieval_time, 2),
-                "rerank_time": round(rerank_time, 2),
-                "generation_time": round(generation_time, 2),
-            } 
+            "cached": False
         }
 
+        # Conditionally add eval data if testing
+        if return_metadata:
+            result.update({
+                "retrieved_nodes": retrieved_nodes,
+                "reranked_nodes": reranked_nodes,
+                "latency": {
+                    "retrieval_time": round(retrieval_time, 2),
+                    "rerank_time": round(rerank_time, 2),
+                    "generation_time": round(generation_time, 2),
+                } 
+            })
+    
         if use_cache:
             # logger.info("Caching query and answer with Redis...")
-            await set(query, {
+            await set_semantic(query, {
                 "answer": result["answer"],
                 "sources": result["sources"],
                 "mode": result["mode"],
             })
+
+        # logger.info("query result", result=result)
 
         return result

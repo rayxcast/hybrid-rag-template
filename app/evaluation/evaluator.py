@@ -127,7 +127,8 @@ class RAGEvaluator:
     async def evaluate_case(self, case: Dict[str, Any]) -> Dict[str, Any]:
         result = await self.rag.query(
             case["question"],
-            use_cache=False,  # Important for deterministic eval
+            cache=False,  # Important for deterministic eval
+            return_metadata=True
         )
 
         answer = result["answer"]

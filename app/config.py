@@ -14,7 +14,8 @@ class AppSettings(BaseSettings):
     LLM_MODEL: str = "gpt-5-nano"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBED_BATCH_SIZE: int = 128
-    USE_RERANKER: bool = True  # Set True later if adding Cohere/BGE
+    USE_RERANKER: bool = True
+    USE_CACHE: bool = True
 
     SIMILARITY_TOP_K: int = 20
     SIMILARITY_CUTOFF: float = 0.35
