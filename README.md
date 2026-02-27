@@ -31,7 +31,7 @@ end
 
 subgraph Processing [On-Premise Logic]
 
-Reranker[Cross-Encoder Reranker\nONNX Runtime] -->|Score & Filter| Context[Top-K Context]
+Reranker[Cross-Encoder Reranker \n ONNX Runtime] -->|Score & Filter| Context[Top-K Context]
 
 end
 
@@ -39,7 +39,7 @@ Context -->|Prompt + Context| LiteLLM{LiteLLM Proxy}
 
 subgraph External_Models [LLM Providers]
 
-LiteLLM --> API[LLM Generator\nGPT / Claude / etc.]
+LiteLLM --> API[LLM Generator \n GPT / Claude / etc.]
 
 end
 
@@ -90,9 +90,9 @@ API -->|Response| User
 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git clone https://github.com/rayxcast/hybrid-rag-template.git
 
-cd YOUR_REPO
+cd hybrid-rag-template
 ```
 
 2. Create `.env` File
