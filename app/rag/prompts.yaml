@@ -5,7 +5,7 @@ v1:
     2. If the context contains relevant information, use it and cite it.
     3. The answer should be sufficiently completed based on logic and facts.
     4. Every fact in the answer should be directly supported by the provided context.
-    5. If the context has no useful information related to the question, say exactly: "The answer is not present in the provided documents."
+    5. If the retrieved context does not contain sufficient information to answer the question, respond exactly with: "The answer is not present in the provided documents."
 
     Context:
     {context_str}

@@ -1,0 +1,75 @@
+[project]
+name = "hybrid-rag-template"
+version = "0.1.0"
+description = "Modular, production-oriented Hybrid Retrieval-Augmented Generation system with FastAPI, Qdrant, Redis semantic cache, and offline evaluation"
+readme = "README.md"
+requires-python = "==3.12.*"
+license = {text = "MIT"}
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+keywords = ["rag", "fastapi", "qdrant", "redis", "llm", "semantic-cache", "retrieval-augmented-generation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "fastapi==0.115.*",
+    "uvicorn[standard]==0.30.*",
+    "llama-index-core==0.14.14",
+    "llama-index-llms-litellm==0.6.*",
+    "llama-index-vector-stores-qdrant==0.9.1",
+    "llama-index-embeddings-openai==0.5.*",
+    "llama-index-readers-file==0.5.6",
+    "qdrant-client==1.16.2",
+    "redis==5.*",
+    "redisvl==0.3.0",
+    "litellm==1.81.*",
+    "structlog==25.*",
+    "pydantic-settings==2.*",
+    "python-dotenv==1.*",
+    "pyyaml==6.*",
+    "python-multipart==0.0.12",
+    "pymupdf==1.24.*",
+    "numpy>=1.26",
+
+    # fastembed: exclude on Intel macOS, include everywhere else
+    'fastembed==0.5.0; sys_platform != "darwin" or platform_machine == "arm64"',
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "mypy>=1.11",
+    "types-pyyaml>=6.0",
+    "types-redis>=4.6.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]  # Your source code dir
+sources = { "app" = "" }  # Map to wheel root
+
+[tool.hatch.build]
+exclude = [
+    "data/*",
+    ".dockerignore",
+    "docker-compose.yml",
+    "Dockerfile",
+]
+
+[tool.uv]
+resolution = "highest"  # Switch back to highest (avoids lowest-direct warnings)
+default-groups = []     # Don't install dev by default
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "W", "I", "PL", "UP", "ANN", "B"]
+ignore = []

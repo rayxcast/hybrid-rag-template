@@ -1,16 +1,16 @@
 services:
   qdrant:
-    image: qdrant/qdrant:latest  # Or :latest — but pin for reproducibility
+    image: qdrant/qdrant:latest
     container_name: qdrant
     ports:
-      - "6333:6333"       # REST + gRPC
-      - "6334:6334"       # Optional dashboard if enabled
+      - "6333:6333"
+      - "6334:6334"  # dashboard if enabled
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
   redis:
-    image: redis/redis-stack:latest  # Includes RediSearch for vector support
+    image: redis/redis-stack:latest
     container_name: redis
     ports:
       - "6379:6379"
@@ -24,29 +24,27 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env               # Your OPENAI_API_KEY etc.
+      - .env
     depends_on:
       - qdrant
       - redis
     # volumes:
-    #   - .:/app             # For hot-reload in dev (optional: remove in prod)
-    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]  # In PROD, remove "--reload" and "uv run" (use the system python)
+    #   - .:/app  # uncomment for hot-reload dev
+    command: ["uv", "run", "--with-editable", ".", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   eval:
     build: .
     container_name: rag-eval
     profiles:
-      - ignore_on_up  # <--- Name this whatever you want
+      - ignore_on_up
     env_file:
       - .env
     environment:
-      - PYTHONPATH=/app  # Look in /app for any modules I try to import.
+      - PYTHONPATH=/app
     depends_on:
       - qdrant
       - redis
-    # volumes:
-      # - .:/app             # For hot-reload in dev (optional: remove in prod)
-    command: ["uv", "run", "python", "-m", "app.evaluation.run_eval"]
+    command: ["uv", "run", "--with-editable", ".", "python", "-m", "app.evaluation.run_eval"]
 
 volumes:
   qdrant_data:

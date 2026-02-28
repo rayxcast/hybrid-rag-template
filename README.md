@@ -1,6 +1,6 @@
 # 🚀 Hybrid RAG Template: Production-Grade RAG System (FastAPI + Qdrant + Redis)
 
-[![Docker Image Size](https://img.shields.io/badge/docker-1.08GB-blue)](https://hub.docker.com/r/yourusername/rag-app)
+[![Docker Image Size](https://img.shields.io/badge/docker-562MB-blue)](https://hub.docker.com/r/yourusername/rag-app)
 
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 
@@ -10,7 +10,7 @@
 
 A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template built for evaluation, benchmarking, and production deployment. Optimized for low-latency hybrid search (dense + sparse), precise retrieval, and scalable AI infrastructure.
 
-**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals — all in a lightweight Docker image (~1.08GB). Ideal for experimenting with RAG pipelines on real documents like 10-K reports. If you find it useful, star the repo! ⭐
+**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals — all in a lightweight Docker image (~562MB). Ideal for experimenting with RAG pipelines on real documents like 10-K reports. If you find it useful, star the repo! ⭐
 
 
 ## 🏗 Architecture Diagram
@@ -87,7 +87,7 @@ CacheWrite --> User
 
 - Strict `.dockerignore` to avoid bloat
 
-- Final image size: **~1.08GB**
+- Final image size: **~562MB**
 
 
 ## 🚀 Quick Start
@@ -102,7 +102,13 @@ git clone https://github.com/rayxcast/hybrid-rag-template.git
 cd hybrid-rag-template
 ```
 
-2. Create `.env` File
+2. Install dependencies (uv recommended)
+
+```bash
+uv sync          # installs from pyproject.toml + creates uv.lock
+```
+
+3. Create `.env` File
 
 ```env
 OPENAI_API_KEY=your_key_here
@@ -118,7 +124,7 @@ EMBEDDING_MODEL=text-embedding-3-small
 USE_RERANKER=true
 ```
 
-3. Start Services
+4. Start with Docker Compose (recommended)
 
 ```bash
 docker compose up --build
@@ -346,4 +352,4 @@ MIT
 
 ## 👤 Author
 
-Built by Randy Castillo ([https://github.com/rayxcast](https://github.com/rayxcast)) – Applied AI Engineer specializing in production LLM systems.
+Built by Randy Castillo ([https://github.com/rayxcast](https://github.com/rayxcast)).
