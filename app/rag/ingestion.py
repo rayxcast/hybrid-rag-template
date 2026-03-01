@@ -146,7 +146,8 @@ def load_documents(input_path: str):
         documents.extend(cleaned_docs)
 
     if not documents:
-        raise ValueError("No supported documents found.")
+        supported = [".pdf", ".txt", ".md", ".docx", ".doc", ".html"]  # adjust to your loader
+        raise ValueError(f"No supported documents found in '{input_path}'. Supported: {supported}")
 
     return documents
 
@@ -188,6 +189,7 @@ async def ingest_documents(input_path: str, recreate: bool = False):
             storage_context=storage_context,
             show_progress=True,
         )
+
         logger.info("Index built", seconds=time.time() - start)
 
         return {

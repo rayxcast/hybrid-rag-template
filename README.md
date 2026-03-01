@@ -160,7 +160,9 @@ Example: Achieves strict factual grounding with LLM-as-judge.
 
 ## 📊 Performance Benchmarks
 
-Tested on 2.9 GHz 6-Core Intel Core i9 with 32 GB RAM (local CPU, no GPU).
+Tested in Docker container (Linux x86_64 emulation) on host:
+- MacBook Pro (2.9 GHz 6-Core Intel Core i9, 32 GB RAM)
+- Local CPU, no GPU
 
 | Stage  | Avg Time  |
 |----------------|-----------|

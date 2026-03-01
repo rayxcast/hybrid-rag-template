@@ -1,23 +1,26 @@
-.venv
-.ipynb_checkpoints
-data/
+# Python / dev artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.log
-.env
+.Python
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+uv.lock.bak
+
+# Docker / build
+*.dockerignore
+docker-compose.override.yml
 .git
 .gitignore
-Dockerfile
-docker-compose.yml
-node_modules
-.cache
-.vscode
-.idea
-tests
-data
-*.ipynb
-# Ignore any downloaded models
-models/
-huggingface_cache/
+.DS_Store
+
+# Large / test-only data — keep this commented if you want sample PDFs in image
+# data/
+# data/*.pdf
+
+# Logs / temp
+*.log
+/tmp/
