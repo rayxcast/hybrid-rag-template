@@ -230,9 +230,14 @@ hybrid-rag-template/
 
 ├── Dockerfile  # Optimized build
 
-├── README.md
+├── eval_results.json  # Results from Evaluation
 
-└── requirements.txt  # Pinned dependencies
+├── pyproject.toml
+
+├── uv.lock
+
+└── README.md
+
 ```
 
 
