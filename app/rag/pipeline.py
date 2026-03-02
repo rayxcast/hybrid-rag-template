@@ -1,6 +1,7 @@
 from app.rag.generator import LLMGenerator
 from app.rag.reranker_providers.factory import get_reranker
 from app.rag.retriever import Retriever
+from app.rag.vectorstores.factory import get_vector_store_provider
 from app.utils.cache import get_semantic, set_semantic 
 from app.config import app_settings
 import structlog
@@ -14,9 +15,17 @@ class HybridRAG:
         self.retriever = Retriever()
         self.reranker = get_reranker()
         self.generator = LLMGenerator()
+        self.vector_store_provider = get_vector_store_provider()
     
     async def query(self, query: str, cache: bool = True, return_metadata: bool = False):
+        
+        if self.vector_store_provider.supports_sparse() and app_settings.RETRIEVAL_MODE == "hybrid":
+            logger.info("> Using hybrid mode.")
+        else:
+            logger.warning("Using dense mode: Hybrid mode is not supported; Sparse requested but not supported by backend.")
+
         use_cache = False if not cache else self.config.USE_CACHE # override use_cache if cache==false else default self.config.USE_CACHE
+
         if use_cache:
             # logger.info("Checking cache for query.", query=query)
             cached, score = await get_semantic(query, threshold=0.92)
@@ -26,7 +35,7 @@ class HybridRAG:
         
         start = time.time()
         # logger.info("Retrieving nodes for query...")
-        retrieved_nodes = self.retriever.retrieve(query)
+        retrieved_nodes = self.retriever.retrieve(query, self.vector_store_provider.supports_sparse())
         # logger.info("Top 3 chunks unranked", samples=[n.node.text[:300] for n in retrieved_nodes[:3]])
         retrieval_time = time.time() - start
 

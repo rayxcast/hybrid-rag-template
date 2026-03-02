@@ -15,6 +15,9 @@ class AppSettings(BaseSettings):
     USE_RERANKER: bool = True
     USE_CACHE: bool = True
 
+    # Vector storage provider
+    VECTOR_STORE_PROVIDER: str = "qdrant"
+
     # Dense provider
     DENSE_PROVIDER: str = "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-small"

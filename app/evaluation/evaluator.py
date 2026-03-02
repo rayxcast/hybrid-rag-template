@@ -150,7 +150,7 @@ class RAGEvaluator:
             score = (eval["faithfulness"]*0.5)+(eval["answer_relevance"]*0.3)+(eval["context_relevance"]*0.2)
             passed = eval["passed"] and score >= 0.8
         except Exception as error:
-            logger.error("Eval passed calculation error", error=error, question=case["question"])
+            logger.error("failed_eval_passed_calculation", error=error, question=case["question"])
 
         return {
             "id": case["id"],

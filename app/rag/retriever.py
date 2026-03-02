@@ -1,9 +1,10 @@
 """Hybrid RAG query engine: retrieval + generation + flags + fallback."""
 from app.config import app_settings, configure_llm_settings
+from app.rag.vectorstores.factory import get_vector_store_provider
 from llama_index.core import VectorStoreIndex
 from llama_index.core import PromptTemplate
 from llama_index.core.postprocessor import SimilarityPostprocessor
-from app.rag.ingestion import get_vector_store
+
 import yaml
 import structlog
 
@@ -17,12 +18,13 @@ qa_prompt = PromptTemplate(prompts["v2"]["qa"])
 class Retriever:
     def __init__(self):
         configure_llm_settings()
+        self.vector_store_provider = get_vector_store_provider()
         self.config = app_settings
 
-    def retrieve(self, query: str):
+    def retrieve(self, query: str, support_hybrid: bool = True):
         try:
-            index = VectorStoreIndex.from_vector_store(get_vector_store())
-            mode = "hybrid" if self.config.RETRIEVAL_MODE == "hybrid" else "default"
+            index = VectorStoreIndex.from_vector_store(self.vector_store_provider.get_vector_store())
+            mode = "hybrid" if self.config.RETRIEVAL_MODE == "hybrid" and support_hybrid else "default"
             node_postprocessors = [SimilarityPostprocessor(similarity_cutoff=self.config.SIMILARITY_CUTOFF)]
 
             retriever = index.as_retriever(

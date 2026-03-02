@@ -1,17 +1,15 @@
 from pathlib import Path
-from typing import List, Tuple
 import re
 import time
+from app.rag.hybrid_indexer import HybridIndexer
 import structlog
 from app.config import app_settings, configure_llm_settings
-from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.readers.file import PDFReader, PyMuPDFReader
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import Document
-from qdrant_client import QdrantClient, models
-from app.rag.embedding_providers.sparse.factory import get_sparse_provider
+
+from rag.vectorstores.factory import get_vector_store_provider
 
 logger = structlog.get_logger()
 
@@ -26,56 +24,6 @@ def clean_text(text: str) -> str:
     text = re.sub(r"endobj.*?obj", "", text, flags=re.DOTALL)
     text = re.sub(r"/Type\s*/\w+", "", text)
     return text.strip()
-
-# ------------------------
-# Sparse Embeddings
-# ------------------------
-class HybridIndexer:
-    def __init__(self):
-        self.sparse = get_sparse_provider(app_settings.SPARSE_PROVIDER)
-
-    def custom_sparse_embed(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-        return self.sparse.embed_documents(texts)
-
-    def custom_sparse_query(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-        return self.sparse.embed_query(texts)
-
-
-# ------------------------
-# Vector Store
-# ------------------------
-
-def get_vector_store():
-    client = QdrantClient(url=app_settings.QDRANT_URL)
-    indexer = HybridIndexer()
-
-    return QdrantVectorStore(
-        client=client,
-        collection_name=app_settings.COLLECTION_NAME,
-        enable_hybrid=True,
-        sparse_doc_fn=indexer.custom_sparse_embed,
-        sparse_query_fn=indexer.custom_sparse_query,
-        text_sparse_name="text-sparse",
-        use_default_sparse_query_encoder=False,
-    )
-
-
-def init_collection_if_needed():
-    client = QdrantClient(url=app_settings.QDRANT_URL)
-
-    if not client.collection_exists(app_settings.COLLECTION_NAME):
-        client.create_collection(
-            collection_name=app_settings.COLLECTION_NAME,
-            vectors_config=models.VectorParams(
-                size=app_settings.EMBEDDING_DIM,
-                distance=models.Distance.COSINE,
-            ),
-            sparse_vectors_config={
-                "text-sparse": models.SparseVectorParams()
-            },
-        )
-        logger.info("created_qdrant_collection", name=app_settings.COLLECTION_NAME)
-
 
 # ------------------------
 # Dynamic file Loader (Production Robust)
@@ -142,17 +90,15 @@ def load_documents(input_path: str):
 # ------------------------
 async def ingest_documents(input_path: str, recreate: bool = False):
     try:
+        logger.info("Ingesting file.", file_path=input_path)
+        indexer = HybridIndexer()
+
         if recreate:
-            client = QdrantClient(url=app_settings.QDRANT_URL)
-            client.delete_collection(app_settings.COLLECTION_NAME)
+            deleted = indexer.store_provider.delete_collection()
+            logger.info(f"{deleted["collection_name"]} successfully deleted.") if deleted["deleted"] else logger.info(f"Failed to delete {deleted["collection_name"]}.")
 
-        init_collection_if_needed()
-        vector_store = get_vector_store()
-
-        storage_context = StorageContext.from_defaults(
-            vector_store=vector_store
-        )
-
+        indexer.store_provider.init_collection_if_needed()
+        
         # ---- Load Documents
         start = time.time()
         documents = load_documents(input_path)
@@ -170,12 +116,7 @@ async def ingest_documents(input_path: str, recreate: bool = False):
 
         # ---- Indexing (Dense + Sparse + Insert)
         start = time.time()
-        index = VectorStoreIndex(
-            nodes,
-            storage_context=storage_context,
-            show_progress=True,
-        )
-
+        index = indexer.build_index(nodes)
         logger.info("Index built", seconds=time.time() - start)
 
         return {
