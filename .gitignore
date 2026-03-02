@@ -59,6 +59,5 @@ htmlcov/
 # -------------------------
 # Data (optional)
 # -------------------------
-data/*.pdf
-data/*.txt
-tst.txt
+data/*
+notes.txt

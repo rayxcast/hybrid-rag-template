@@ -10,20 +10,12 @@ from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.readers.file import PDFReader, PyMuPDFReader
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import Document
-
 from qdrant_client import QdrantClient, models
-from fastembed import SparseTextEmbedding
+from app.rag.embedding_providers.sparse.factory import get_sparse_provider
 
 logger = structlog.get_logger()
+
 configure_llm_settings()
-
-# ------------------------
-# Embeddings (Production Mode)
-# ------------------------
-
-sparse_model = SparseTextEmbedding(
-    model_name="prithivida/Splade_PP_en_v1"
-)
 
 # ------------------------
 # Text Cleaning
@@ -38,22 +30,17 @@ def clean_text(text: str) -> str:
 # ------------------------
 # Sparse Embeddings
 # ------------------------
+class HybridIndexer:
+    def __init__(self):
+        self.sparse = get_sparse_provider(app_settings.SPARSE_PROVIDER)
 
-def custom_sparse_embed(texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-    embeddings = list(sparse_model.embed(texts))
-    indices_list = []
-    values_list = []
+    def custom_sparse_embed(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
+        print("custom_sparse_embed texts:", texts)
+        return self.sparse.embed_documents(texts)
 
-    for emb in embeddings:
-        indices_list.append(emb.indices.tolist())
-        values_list.append(emb.values.tolist())
-
-    return indices_list, values_list
-
-
-def custom_sparse_query(texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-    emb = next(sparse_model.embed(texts))
-    return [emb.indices.tolist()], [emb.values.tolist()]
+    def custom_sparse_query(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
+        print("custom_sparse_query texts:", texts)
+        return self.sparse.embed_query(texts)
 
 
 # ------------------------
@@ -62,13 +49,14 @@ def custom_sparse_query(texts: List[str]) -> Tuple[List[List[int]], List[List[fl
 
 def get_vector_store():
     client = QdrantClient(url=app_settings.QDRANT_URL)
+    indexer = HybridIndexer()
 
     return QdrantVectorStore(
         client=client,
         collection_name=app_settings.COLLECTION_NAME,
         enable_hybrid=True,
-        sparse_doc_fn=custom_sparse_embed,
-        sparse_query_fn=custom_sparse_query,
+        sparse_doc_fn=indexer.custom_sparse_embed,
+        sparse_query_fn=indexer.custom_sparse_query,
         text_sparse_name="text-sparse",
         use_default_sparse_query_encoder=False,
     )
@@ -81,7 +69,7 @@ def init_collection_if_needed():
         client.create_collection(
             collection_name=app_settings.COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=1536,
+                size=app_settings.EMBEDDING_DIM,
                 distance=models.Distance.COSINE,
             ),
             sparse_vectors_config={
@@ -174,8 +162,8 @@ async def ingest_documents(input_path: str, recreate: bool = False):
 
         # ---- Chunking
         splitter = SentenceSplitter(
-            chunk_size=1024,
-            chunk_overlap=150,
+            chunk_size=app_settings.CHUNK_SIZE,
+            chunk_overlap=app_settings.CHUNK_OVERLAP,
         )
 
         start = time.time()

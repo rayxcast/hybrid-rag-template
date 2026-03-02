@@ -32,7 +32,7 @@ SCHEMA = IndexSchema.from_dict({
         {"name": "query_text", "type": "text"},
         {"name": "answer", "type": "text"},
         {"name": "embedding", "type": "vector", "attrs": {
-            "dims": 1536,
+            "dims": app_settings.EMBEDDING_DIM,
             "distance_metric": "cosine",
             "algorithm": "hnsw",
             "datatype": "float32"

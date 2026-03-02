@@ -1,5 +1,5 @@
 from app.rag.generator import LLMGenerator
-from app.rag.reranker import Reranker
+from app.rag.reranker_providers.factory import get_reranker
 from app.rag.retriever import Retriever
 from app.utils.cache import get_semantic, set_semantic 
 from app.config import app_settings
@@ -12,7 +12,7 @@ class HybridRAG:
     def __init__(self):
         self.config = app_settings
         self.retriever = Retriever()
-        self.reranker = Reranker(app_settings.RERANK_MODEL)
+        self.reranker = get_reranker()
         self.generator = LLMGenerator()
     
     async def query(self, query: str, cache: bool = True, return_metadata: bool = False):
@@ -32,7 +32,7 @@ class HybridRAG:
 
         start = time.time()
         reranked_nodes = []
-        if retrieved_nodes and self.config.USE_RERANKER:
+        if retrieved_nodes and self.config.USE_RERANKER and self.reranker:
             # logger.info("ReRanking retrieved nodes...")
             reranked_nodes = self.reranker.rerank(query, retrieved_nodes, top_n=self.config.RERANK_TOP_N)
             # logger.info("Top 3 chunks reranked", samples=[n.node.text[:300] for n in reranked_nodes[:3]])

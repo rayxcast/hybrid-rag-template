@@ -38,8 +38,11 @@ async def main():
         "results": results,
         "overall": summary
     }
-    with open("eval_results.json", "w") as f:
-        json.dump(to_save, f, indent=2)
+    try:
+        with open("eval_results.json", "w") as f:
+            json.dump(to_save, f, indent=2)
+    except Exception as e:
+        print(f"Failed to save JSON: {e}")
 
 if __name__ == "__main__":
     start_time = time.time()
