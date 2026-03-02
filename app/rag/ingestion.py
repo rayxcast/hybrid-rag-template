@@ -35,11 +35,9 @@ class HybridIndexer:
         self.sparse = get_sparse_provider(app_settings.SPARSE_PROVIDER)
 
     def custom_sparse_embed(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-        print("custom_sparse_embed texts:", texts)
         return self.sparse.embed_documents(texts)
 
     def custom_sparse_query(self, texts: List[str]) -> Tuple[List[List[int]], List[List[float]]]:
-        print("custom_sparse_query texts:", texts)
         return self.sparse.embed_query(texts)
 
 
