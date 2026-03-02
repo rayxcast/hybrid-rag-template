@@ -11,7 +11,7 @@ class AppSettings(BaseSettings):
     # RAG Settings
     RETRIEVAL_MODE: Literal["dense", "hybrid"] = "hybrid"
     LLM_PROVIDER: Literal["openai", "anthropic", "ollama"] = "openai"
-    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_MODEL: str = "gpt-4.1-mini"
     USE_RERANKER: bool = True
     USE_CACHE: bool = True
 
@@ -39,7 +39,7 @@ class AppSettings(BaseSettings):
     FINAL_CONTEXT_N: int = 7 # 5 – 10 Most modern LLMs perform best with 5–10 highly relevant chunks. Too many chunks can lead to "Lost in the Middle" errors.
     
     # Evals config
-    EVAL_LLM_MODEL: str = "gpt-5-nano"
+    EVAL_LLM_MODEL: str = "gpt-4.1-nano"
     EVAL_LLM_PROVIDER: str = "openai"
 
     # Services
@@ -61,7 +61,6 @@ def configure_llm_settings():
     Settings.llm = LiteLLM(
         model=f"{app_settings.LLM_PROVIDER}/{app_settings.LLM_MODEL}",
         api_key=app_settings.OPENAI_API_KEY if app_settings.LLM_PROVIDER == "openai" else (app_settings.ANTHROPIC_API_KEY if app_settings.LLM_PROVIDER == "anthropic" else app_settings.LLAMA_CLOUD_API_KEY),
-        # additional_kwargs={"drop_params": True} 
         temperature=1
     )
  

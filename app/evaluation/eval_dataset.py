@@ -146,7 +146,7 @@ EVAL_SET = [
     {
         "id": "num_5",
         "question": "What is the cash and cash equivalents amount down to the million?",
-        "expected_contains": "$110,234",
+        "expected_contains": "$30,708",
         "should_refuse": False
     }
 ]

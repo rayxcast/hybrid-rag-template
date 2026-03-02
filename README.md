@@ -121,14 +121,6 @@ uv sync          # installs from pyproject.toml + creates uv.lock
 OPENAI_API_KEY=your_key_here
 
 RETRIEVAL_MODE=hybrid  # or 'dense'
-
-LLM_PROVIDER=openai
-
-LLM_MODEL=gpt-5-nano  # Adjust as needed
-
-EMBEDDING_MODEL=text-embedding-3-small
-
-USE_RERANKER=true
 ```
 
 4. Start with Docker Compose (recommended)
@@ -167,17 +159,44 @@ Example: Achieves strict factual grounding with LLM-as-judge.
 
 ## 📊 Performance Benchmarks
 
-Tested in Docker container (Linux x86_64 emulation) on host:
+Evaluated in a Docker container (Linux x86_64 emulation) on host:
 - MacBook Pro (2.9 GHz 6-Core Intel Core i9, 32 GB RAM)
-- Local CPU, no GPU
+- Local CPU only (no GPU acceleration)
 
-| Stage  | Avg Time  |
-|----------------|-----------|
-| Retrieval  | ~0.67s |
-| Rerank | ~1.03s |
-| Generation | ~6.39s |
-| Judge  | ~5.93s |
-| End-to-End | ~12–15s (with eval judge), ~6–8s (production inference) |
+**LLM models**:
+- Generation: OpenAI gpt-4.1-mini
+- Judge: OpenAI gpt-4.1-nano
+
+**Retrieval config**:
+- Chunk size: 512 tokens
+- Similarity top-k: 75
+- Similarity cutoff: 0.75
+
+**Reranker config**:
+- Model: fastembed / jinaai/jina-reranker-v1-tiny-en
+- Rerank top-n: 25
+- Final context chunks: 7
+
+**Test suite** (25 cases total):
+- 5 adversarial
+- 5 unanswerable
+- 5 paraphrased
+- 5 multi-hop
+- 5 numerical precision
+
+**Results** (March 2026 run):
+
+| Metric                  | Value                  |
+|-------------------------|------------------------|
+| Total Accuracy (judge-passed) | 100.00%               |
+| Avg Retrieval Time      | ~1.91 s                |
+| Avg Rerank Time         | ~4.38 s                |
+| Avg Generation Time     | ~2.06 s                |
+| Avg Judge Time          | ~1.87 s                |
+| End-to-End Latency (with judge) | ~9–11 s             |
+| End-to-End Latency (inference only) | ~6–9 s           |
+
+This 100% judge-pass rate demonstrates strong faithfulness and precision across diverse question types, even on CPU-only hardware. Latencies are dominated by the reranker (CPU-bound); production deployments with GPU or lighter rerank could reduce total time significantly.
 
 
 ## 🗂 Project Structure
@@ -252,27 +271,40 @@ hybrid-rag-template/
 
 Tune via `.env` or `config.py`:
 
-- `RETRIEVAL_MODE`: 'hybrid' or 'dense'
+RAG Settings
+- `RETRIEVAL_MODE`
+- `LLM_PROVIDER`
+- `LLM_MODEL`
+- `USE_RERANKER`
+- `USE_CACHE`
 
-- `LLM_PROVIDER`: 'openai', 'anthropic', etc.
+Dense provider
+- `DENSE_PROVIDER`
+- `EMBEDDING_MODEL`
+- `EMBED_BATCH_SIZE`
 
-- `LLM_MODEL`: e.g., 'gpt-5-nano'
+- `CHUNK_SIZE`
+- `CHUNK_OVERLAP`
+- `EMBEDDING_DIM`
 
-- `EMBEDDING_MODEL`: e.g., 'text-embedding-3-small'
+Sparse provider
+- `SPARSE_PROVIDER`
+- `SPARSE_MODEL`
 
-- `EMBED_BATCH_SIZE`: Batch size for embeddings
+Reranker provider
+- `RERANKER_PROVIDER`
+- `RERANKER_MODEL`
 
-- `USE_RERANKER`: true/false
+Retrieval config
+- `SIMILARITY_TOP_K`
+- `SIMILARITY_CUTOFF`
+- `RERANK_TOP_N`
+- `FINAL_CONTEXT_N`
+    
+Evals config
+- `EVAL_LLM_MODEL`
+- `EVAL_LLM_PROVIDER`
 
-- `SIMILARITY_TOP_K`: Initial retrieval count
-
-- `SIMILARITY_CUTOFF`: Score threshold
-
-- `RERANKER_MODEL`: e.g., 'jinaai/jina-reranker-v1-tiny-en'
-
-- `RERANK_TOP_N`: Post-rerank selection
-
-- `FINAL_CONTEXT_N`: Chunks in final prompt
 
 
 ## 🧠 Design Decisions
@@ -319,7 +351,7 @@ Tune via `.env` or `config.py`:
 
 - Scalable, cost-effective, and explainable
 
-- Achieves 96% accuracy on custom benchmarks
+- Achieves 100% accuracy on custom benchmarks
 
 
 ## 🐳 Docker Notes

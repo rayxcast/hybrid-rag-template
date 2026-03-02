@@ -28,8 +28,8 @@ services:
     depends_on:
       - qdrant
       - redis
-    # volumes:
-    #   - .:/app  # uncomment for hot-reload dev
+    volumes:
+      - .:/app  # uncomment for hot-reload dev, comment for prod
     command: ["uv", "run", "--with-editable", ".", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   eval:
@@ -44,6 +44,9 @@ services:
     depends_on:
       - qdrant
       - redis
+    volumes:
+      - .:/app # uncomment for hot-reload dev, comment for prod
+      - ./eval_results:/app/eval_results
     command: ["uv", "run", "--with-editable", ".", "python", "-m", "app.evaluation.run_eval"]
 
 volumes:

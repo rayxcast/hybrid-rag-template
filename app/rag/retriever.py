@@ -12,7 +12,7 @@ logger = structlog.get_logger()
 # Load prompts
 with open("app/rag/prompts.yaml") as f:
     prompts = yaml.safe_load(f)
-qa_prompt = PromptTemplate(prompts["v1"]["qa"])
+qa_prompt = PromptTemplate(prompts["v2"]["qa"])
 
 class Retriever:
     def __init__(self):

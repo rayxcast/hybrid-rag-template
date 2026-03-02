@@ -2,28 +2,30 @@ import re
 import json
 import time
 from typing import Dict, Any, List, Optional
-from app.config import app_settings, configure_llm_settings
+from llama_index.llms.litellm import LiteLLM
+from app.config import app_settings
 import structlog
 
 logger = structlog.get_logger()
 
 class RAGEvaluator:
     def __init__(self, rag_pipeline):
-        configure_llm_settings()
         self.rag = rag_pipeline
-        from llama_index.core import Settings
-        self.llm = Settings.llm
+        self.llm = LiteLLM(
+            model=f"{app_settings.EVAL_LLM_PROVIDER}/{app_settings.EVAL_LLM_MODEL}",
+            api_key=app_settings.OPENAI_API_KEY if app_settings.LLM_PROVIDER == "openai" else (app_settings.ANTHROPIC_API_KEY if app_settings.LLM_PROVIDER == "anthropic" else app_settings.LLAMA_CLOUD_API_KEY),
+            temperature=1
+        )
 
     # ----------------------------
     # Utility
     # ----------------------------
-
     @staticmethod
     def normalize(text: str) -> str:
         text = text.lower()
         text = re.sub(r"\s+", "", text)   # remove ALL whitespace
         return text
-
+    
     @staticmethod
     def parse_llm_json_response(response_content: str) -> dict | None:
         # 1. Clean the response: remove markdown formatting
@@ -55,11 +57,9 @@ class RAGEvaluator:
             print("No JSON object found in the response.")
             return None
 
-        
     # ----------------------------
     # Retrieval Recall
     # ----------------------------
-
     def retrieval_recall(
         self,
         retrieved_nodes: List[Any],
@@ -77,48 +77,40 @@ class RAGEvaluator:
                 return True
 
         return False
-
+    
     # ----------------------------
     # faithfulness evaluation with LLM as judge
     # ----------------------------
 
-    def faithfulness(self, question, answer, retrieved_nodes, should_refuse=False):
+    def llm_as_judge(self, question, answer, retrieved_nodes, should_refuse=False):
         context = "\n\n".join([n.node.text for n in retrieved_nodes[:app_settings.FINAL_CONTEXT_N]])
-        #    {"" if not should_refuse else "Does the answer correctly refuse due to lack of evidence?"}
         prompt = f"""
-        You are evaluating factual grounding.
-        1. Based only on the provided context, is the answer correct and sufficiently complete?
-        2. {"Is every fact in the answer directly supported by the provided context?" if not should_refuse else "Does the answer correctly refuse due to lack of evidence?"}
-        
-        Return your final answer strictly in JSON:
-        {{
-            "passed": True or False
-        }}
+            You are an expert AI Auditor specializing in hybrid Retrieval-Augmented Generation (RAG) systems. 
+            Your goal is to evaluate the quality and factual grounding of a response based on a specific Query and the provided Context. Based only on the provided context, is the answer correct and sufficiently complete?
 
-        Question:
-        {question}
+            ### Evaluation Criteria
+            1. **Faithfulness (0.0 - 1.0):** Are all claims in the answer supported by the context? 
+            2. **Answer Relevance (0.0 - 1.0):** Does the answer address the user's intent? 
+            3. **Context Relevance (0.0 - 1.0):** Was the retrieved context necessary and sufficient? 
 
-        Context:
-        {context}
+            ### Output Format
+            Return ONLY a JSON object with this schema:
+            {{
+                "reasoning": "A concise step-by-step explanation of your judgment.",
+                "faithfulness": float,
+                "answer_relevance": float,
+                "context_relevance": float,
+                "passed": boolean
+            }}
 
-        Answer:
-        {answer}
+            ### Input Data
+            - Query: {question}
+            - Context: {context}
+            - Generated Answer: {answer}
         """
 
         response = self.llm.complete(prompt)
-        respJSON = self.parse_llm_json_response(response.text)
-        # logger.info("parse_llm_json_response", response=response.text, respJSON=respJSON)
-
-        if respJSON:
-            passed = respJSON["passed"]
-            if isinstance(passed, bool):
-                return passed
-            elif isinstance(passed, str):
-                passed = passed.strip().lower()
-                return True if passed == "true" else False
-
-        passed = response.text.strip().lower()    
-        return True if "true" in passed else False
+        return self.parse_llm_json_response(response.text)
 
     # ----------------------------
     # Full Case Evaluation
@@ -143,13 +135,22 @@ class RAGEvaluator:
         # PASS LOGIC
         # ----------------------------
         start = time.time()
-        faithfulness = self.faithfulness(
+        eval = self.llm_as_judge(
             case["question"],
             answer,
             retrieved_nodes,
             case["should_refuse"]
         )
         judge_time = time.time() - start
+        
+        passed = 0
+        score = 0
+
+        try:
+            score = (eval["faithfulness"]*0.5)+(eval["answer_relevance"]*0.3)+(eval["context_relevance"]*0.2)
+            passed = eval["passed"] and score >= 0.8
+        except Exception as error:
+            logger.error("Eval passed calculation error", error=error, question=case["question"])
 
         return {
             "id": case["id"],
@@ -160,5 +161,7 @@ class RAGEvaluator:
                 **result["latency"],
                 "judge_time": round(judge_time, 2),
             },
-            "passed": faithfulness,
+            "eval": eval,
+            "score": score,
+            "passed": passed,
         }

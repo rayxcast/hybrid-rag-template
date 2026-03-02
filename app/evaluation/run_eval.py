@@ -39,7 +39,7 @@ async def main():
         "overall": summary
     }
     try:
-        with open("eval_results.json", "w") as f:
+        with open("eval_results/eval_results.json" , "w") as f:
             json.dump(to_save, f, indent=2)
     except Exception as e:
         print(f"Failed to save JSON: {e}")
