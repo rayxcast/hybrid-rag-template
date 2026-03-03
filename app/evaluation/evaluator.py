@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 from llama_index.llms.litellm import LiteLLM
 from app.config import app_settings
 import structlog
+import uuid
 
 logger = structlog.get_logger()
 
@@ -117,8 +118,10 @@ class RAGEvaluator:
     # ----------------------------
 
     async def evaluate_case(self, case: Dict[str, Any]) -> Dict[str, Any]:
+        trace_id = str(uuid.uuid4())
         result = await self.rag.query(
             case["question"],
+            trace_id,
             cache=False,  # Important for deterministic eval
             return_metadata=True
         )
@@ -159,7 +162,7 @@ class RAGEvaluator:
             "retrieval_recall": retrieval,
             "latency": {
                 **result["latency"],
-                "judge_time": round(judge_time, 2),
+                "judge": round(judge_time, 2),
             },
             "eval": eval,
             "score": score,

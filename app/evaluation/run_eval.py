@@ -24,10 +24,10 @@ async def main():
     summary = {
         "avg_accuracy": f"{accuracy:.2%}",
         "avg_latency": {
-            "retrieval_time": round(sum(m['latency']["retrieval_time"] for m in results) / len(results), 2),
-            "rerank_time": round(sum(m['latency']["rerank_time"] for m in results) / len(results), 2),
-            "generation_time": round(sum(m['latency']["generation_time"] for m in results) / len(results), 2),
-            "judge_time": round(sum(m['latency']["judge_time"] for m in results) / len(results), 2)
+            "retrieval_time": round(sum(m['latency']["retrieval"] for m in results) / len(results), 2),
+            "rerank_time": round(sum(m['latency']["rerank"] for m in results) / len(results), 2),
+            "generation_time": round(sum(m['latency']["generation"] for m in results) / len(results), 2),
+            "judge_time": round(sum(m['latency']["judge"] for m in results) / len(results), 2)
         },
         "total_retrieval_recall": sum(1 for m in results if m['retrieval_recall']),
         "total_passed": sum(1 for m in results if m['passed'])
