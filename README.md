@@ -202,70 +202,62 @@ This 100% judge-pass rate demonstrates strong faithfulness and precision across 
 ## 🗂 Project Structure
 
 ```
-hybrid-rag-template/
-
-├── app/  # Core application code
-
-│ ├── evaluation/ # Eval framework
-
-│ │ ├── eval_dataset.py  # 25-question benchmark dataset
-
-│ │ ├── evaluator.py # RAGEvaluator class with LLM-as-judge
-
-│ │ └── run_eval.py  # Async eval runner
-
-│ ├── rag/  # RAG pipeline components
-
-│ │ ├── generator.py # LLM generation logic
-
-│ │ ├── ingestion.py # Document ingestion to Qdrant
-
-│ │ ├── pipeline.py  # HybridRAG orchestrator
-
-│ │ ├── prompts.yaml # Prompt templates (e.g., QA)
-
-│ │ ├── reranker.py  # Reranker class
-
-│ │ └── retriever.py # Retriever class (hybrid/dense)
-
-│ ├── api/  # API layer
-
-│ │ └── endpoints/ # Routes
-
-│ │ ├── ingest.py  # POST /ingest (upload files/dir)
-
-│ │ └── query.py # POST /query {"query": "..."}
-
-│ ├── utils/  # Helpers
-
-│ │ ├── logging.py # Structured logging with structlog
-
-│ │ └── cache.py # Redis semantic cache (query hashing)
-
-│ ├── config.py # Pydantic settings and flags
-
-│ └── main.py # FastAPI app entrypoint
-
-├── data/ # Sample docs (e.g., alphabet_10k_report_2026.pdf)
-
-├── .dockerignore
-
-├── .gitignore
-
-├── docker-compose.yml  # Services: app, Qdrant, Redis, eval
-
-├── Dockerfile  # Optimized build
-
-├── eval_results.json  # Results from Evaluation
-
-├── pyproject.toml
-
-├── uv.lock
-
-└── README.md
-
+└── 📁hybrid-rag-template
+    └── 📁app
+        └── 📁api
+            └── 📁endpoints
+                ├── ingest.py
+                ├── query.py
+        └── 📁core 
+            └── 📁observability
+                ├── timing.py
+        └── 📁evaluation # Eval framework
+            ├── eval_dataset.py
+            ├── evaluator.py
+            ├── run_eval.py
+        └── 📁rag
+            └── 📁embedding_providers
+                └── 📁dense
+                    ├── base.py
+                    ├── factory.py
+                    ├── openai_provider.py
+                └── 📁sparse
+                    ├── base.py
+                    ├── factory.py
+                    ├── splade_provider.py
+            └── 📁reranker_providers
+                ├── base.py
+                ├── factory.py
+                ├── fastembed_reranker.py
+            └── 📁vectorstores
+                ├── base.py
+                ├── factory.py
+                ├── qdrant_hybrid.py
+            ├── generator.py
+            ├── hybrid_indexer.py
+            ├── ingestion.py
+            ├── pipeline.py
+            ├── prompts.yaml
+            ├── retriever.py
+        └── 📁utils
+            ├── cache.py
+            ├── logging.py
+        ├── config.py
+        ├── main.py
+    └── 📁data
+        ├── document.pdf
+    └── 📁eval_results
+        ├── eval_results.json
+    ├── .dockerignore
+    ├── .env
+    ├── .gitignore
+    ├── docker-compose.yml
+    ├── Dockerfile
+    ├── LICENSE
+    ├── pyproject.toml
+    ├── README.md
+    └── uv.lock
 ```
-
 
 ## ⚙️ Configuration
 

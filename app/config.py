@@ -36,9 +36,9 @@ class AppSettings(BaseSettings):
     RERANKER_MODEL: str = "jinaai/jina-reranker-v1-tiny-en" # "light+fast but English only "jinaai/jina-reranker-v1-turbo-en" vs "BAAI/bge-reranker-base" for balanced production choice Multilingual, but much slower + high size (1.1 GB)
 
     # Retrieval config
-    SIMILARITY_TOP_K: int = 75 # 50 – 100 This is your "Recall" phase. You need enough candidates from both vector and keyword search so the reranker has the "correct" information available to find.
+    SIMILARITY_TOP_K: int = 50 # 50 – 100 This is your "Recall" phase. You need enough candidates from both vector and keyword search so the reranker has the "correct" information available to find.
     SIMILARITY_CUTOFF: float = 0.75 # 0.75 is a common industry baseline for "meaningful" similarity in 2026.
-    RERANK_TOP_N: int = 25 # 20 – 30 After fusing results, the reranker should evaluate a healthy subset. 15 is slightly narrow; 25 is safer to ensure diverse perspectives are captured before final selection.
+    RERANK_TOP_N: int = 20 # 20 – 30 After fusing results, the reranker should evaluate a healthy subset. 15 is slightly narrow; 25 is safer to ensure diverse perspectives are captured before final selection.
     FINAL_CONTEXT_N: int = 7 # 5 – 10 Most modern LLMs perform best with 5–10 highly relevant chunks. Too many chunks can lead to "Lost in the Middle" errors.
     
     # Evals config
