@@ -401,4 +401,4 @@ MIT
 
 ## 👤 Author
 
-Built by Randy Castillo ([https://github.com/rayxcast](https://github.com/rayxcast)).
+Built by Randy Castillo ([GitHub](https://github.com/rayxcast), [LinkedIn](https://www.linkedin.com/in/randycastillo-/)).
