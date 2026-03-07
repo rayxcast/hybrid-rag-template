@@ -1,0 +1,39 @@
+[project]
+name = "reranker-service"
+version = "0.1.0"
+description = "Standalone FastAPI reranker microservice"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    # fastembed: exclude on Intel macOS, include everywhere else
+    'fastembed==0.5.0; sys_platform != "darwin" or platform_machine == "arm64"',
+    # "fastembed",
+    # "onnxruntime",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "mypy>=1.11",
+    "types-pyyaml>=6.0",      # if relevant
+    "types-redis>=4.6.0",     # if relevant
+    # add service-specific dev deps here if needed
+]
+
+[tool.uv]
+resolution = "highest"
+default-groups = []           # crucial for clean Docker builds
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"      # or py311 if you stay on 3.11
+select = ["E", "F", "W", "I", "PL", "UP", "ANN", "B"]
+ignore = []
+
+# Only add if you ever plan to publish this service as a package
+# [tool.hatch.build]
+# exclude = [".dockerignore", "Dockerfile"]

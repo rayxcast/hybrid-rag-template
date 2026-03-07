@@ -32,7 +32,7 @@ class AppSettings(BaseSettings):
     SPARSE_MODEL: str = "prithivida/Splade_PP_en_v1"
 
     # Reranker provider
-    RERANKER_PROVIDER: str = "fastembed"
+    RERANKER_PROVIDER: str = "remote" # "fastembed"
     RERANKER_MODEL: str = "jinaai/jina-reranker-v1-tiny-en" # "light+fast but English only "jinaai/jina-reranker-v1-turbo-en" vs "BAAI/bge-reranker-base" for balanced production choice Multilingual, but much slower + high size (1.1 GB)
 
     # Retrieval config
@@ -48,6 +48,7 @@ class AppSettings(BaseSettings):
     # Services
     QDRANT_URL: str = "http://qdrant:6333"
     REDIS_URL: str = "redis://redis:6379/0"
+    RERANKER_URL: str = "http://reranker:8001"
     COLLECTION_NAME: str = "hybrid_rag_docs"
     
     # Keys (from .env)

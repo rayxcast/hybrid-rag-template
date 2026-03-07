@@ -2,6 +2,12 @@ version = 1
 revision = 3
 requires-python = "==3.12.*"
 
+[manifest]
+members = [
+    "hybrid-rag-template",
+    "reranker-service",
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -627,6 +633,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "fastembed", marker = "platform_machine == 'arm64' or sys_platform != 'darwin'" },
+    { name = "httpx" },
     { name = "litellm" },
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-openai" },
@@ -660,6 +667,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = "==0.115.*" },
     { name = "fastembed", marker = "platform_machine == 'arm64' or sys_platform != 'darwin'", specifier = "==0.5.0" },
+    { name = "httpx" },
     { name = "litellm", specifier = "==1.81.*" },
     { name = "llama-index-core", specifier = "==0.14.14" },
     { name = "llama-index-embeddings-openai", specifier = "==0.5.*" },
@@ -1681,6 +1689,40 @@ sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6", size = 64738, upload-time = "2025-08-18T20:46:00.542Z" },
 ]
+
+[[package]]
+name = "reranker-service"
+version = "0.1.0"
+source = { virtual = "services/reranker_service" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "fastembed", marker = "platform_machine == 'arm64' or sys_platform != 'darwin'" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
+    { name = "types-redis" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastembed", marker = "platform_machine == 'arm64' or sys_platform != 'darwin'", specifier = "==0.5.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.0" },
+    { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "types-redis", marker = "extra == 'dev'", specifier = ">=4.6.0" },
+    { name = "uvicorn", extras = ["standard"] },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "rpds-py"

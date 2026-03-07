@@ -33,10 +33,8 @@ class HybridRAG:
         if use_cache:
             # 1️⃣ Check cached
             with stage_timer("check_cached", logger, trace_id):
-                # logger.info("Checking cached for query.", query=query)
                 cached, score = await get_semantic(query, threshold=0.92)
             if cached:
-                # logger.info("Cached query found. Returning cached.", query=query, cached=cached)
                 total_duration = time.perf_counter() - total_start
                 logger.info(
                     "cache_pipeline_total_latency",
@@ -47,25 +45,18 @@ class HybridRAG:
         
         # 2️⃣ Retrieval
         with stage_timer("retrieval", logger, trace_id, metrics):
-            # logger.info("Retrieving nodes for query...")
             retrieved_nodes = self.retriever.retrieve(query, self.vector_store_provider.supports_sparse())
-            # logger.info("Top 3 chunks unranked", samples=[n.node.text[:300] for n in retrieved_nodes[:3]])
-        # metrics["retrieval_time"] = round(duration, 4)
 
         # 3️⃣ Rerank
         reranked_nodes = []
         if retrieved_nodes and self.config.USE_RERANKER and self.reranker:
             with stage_timer("rerank", logger, trace_id, metrics):
-                # logger.info("ReRanking retrieved nodes...")
-                reranked_nodes = self.reranker.rerank(query, retrieved_nodes, top_n=self.config.RERANK_TOP_N)
-                # logger.info("Top 3 chunks reranked", samples=[n.node.text[:300] for n in reranked_nodes[:3]])
+                reranked_nodes = await self.reranker.rerank(query, retrieved_nodes, top_n=self.config.RERANK_TOP_N)
 
         # 4️⃣ Generation
         with stage_timer("generation", logger, trace_id, metrics):
             final_nodes = reranked_nodes[:self.config.FINAL_CONTEXT_N] if self.config.USE_RERANKER and reranked_nodes else retrieved_nodes[:self.config.FINAL_CONTEXT_N]
-            # logger.info("Generating LLM response with final nodes...")
             response = self.generator.generate(query, final_nodes)
-            # logger.info("LLM response.", response=response)
 
         result = {
             "answer": response["answer"],
@@ -74,7 +65,6 @@ class HybridRAG:
             "cached": False
         }
 
-        # print("metrics:", metrics)
         # Conditionally add eval data if testing
         if return_metadata:
             result.update({
@@ -100,7 +90,5 @@ class HybridRAG:
             trace_id=trace_id,
             duration_seconds=round(total_duration, 4),
         )
-
-        # logger.info("query result", result=result)
 
         return result

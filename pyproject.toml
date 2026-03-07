@@ -33,6 +33,7 @@ dependencies = [
     "python-multipart==0.0.12",
     "pymupdf==1.24.*",
     "numpy>=1.26",
+    "httpx",
 
     # fastembed: exclude on Intel macOS, include everywhere else
     'fastembed==0.5.0; sys_platform != "darwin" or platform_machine == "arm64"',
@@ -67,6 +68,9 @@ exclude = [
 [tool.uv]
 resolution = "highest"  # Switch back to highest (avoids lowest-direct warnings)
 default-groups = []     # Don't install dev by default
+
+[tool.uv.workspace]
+members = ["services/*"]  
 
 [tool.ruff]
 line-length = 100
