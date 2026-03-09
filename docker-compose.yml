@@ -62,7 +62,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app  # for hot-reload in dev; comment in prod
-    command: ["uv", "run", "--with-editable", ".", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]  # no --reload by default
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "4"]
     restart: unless-stopped
     # networks: [rag-net]
 
@@ -84,7 +84,7 @@ services:
     volumes:
       - .:/app
       - ./eval_results:/app/eval_results
-    command: ["uv", "run", "--with-editable", ".", "python", "-m", "app.evaluation.run_eval"]
+    command: ["python", "-m", "app.evaluation.run_eval"]
     restart: no   # if it's a one-shot eval job
 
 volumes:

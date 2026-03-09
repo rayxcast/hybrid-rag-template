@@ -118,53 +118,57 @@ class RAGEvaluator:
     # ----------------------------
 
     async def evaluate_case(self, case: Dict[str, Any]) -> Dict[str, Any]:
-        trace_id = str(uuid.uuid4())
-        result = await self.rag.query(
-            case["question"],
-            trace_id,
-            cache=False,  # Important for deterministic eval
-            return_metadata=True
-        )
+        try: 
+            trace_id = str(uuid.uuid4())
+            result = await self.rag.query(
+                case["question"],
+                trace_id,
+                cache=False,  # Important for deterministic eval
+                return_metadata=True
+            )
 
-        answer = result["answer"]
-        retrieved_nodes = result["reranked_nodes"] if app_settings.USE_RERANKER and result["reranked_nodes"] else result["retrieved_nodes"] 
+            answer = result["answer"]
+            retrieved_nodes = result["reranked_nodes"] if app_settings.USE_RERANKER and result["reranked_nodes"] else result["retrieved_nodes"] 
 
-        retrieval = self.retrieval_recall(
-            retrieved_nodes,
-            case.get("expected_contains"),
-        )
+            retrieval = self.retrieval_recall(
+                retrieved_nodes,
+                case.get("expected_contains"),
+            )
 
-        # ----------------------------
-        # PASS LOGIC
-        # ----------------------------
-        start = time.time()
-        eval = self.llm_as_judge(
-            case["question"],
-            answer,
-            retrieved_nodes,
-            case["should_refuse"]
-        )
-        judge_time = time.time() - start
-        
-        passed = 0
-        score = 0
+            # ----------------------------
+            # PASS LOGIC
+            # ----------------------------
+            start = time.time()
+            eval = self.llm_as_judge(
+                case["question"],
+                answer,
+                retrieved_nodes,
+                case["should_refuse"]
+            )
+            judge_time = time.time() - start
+            
+            passed = 0
+            score = 0
 
-        try:
-            score = (eval["faithfulness"]*0.5)+(eval["answer_relevance"]*0.3)+(eval["context_relevance"]*0.2)
-            passed = eval["passed"] and score >= 0.8
+            try:
+                score = (eval["faithfulness"]*0.5)+(eval["answer_relevance"]*0.3)+(eval["context_relevance"]*0.2)
+                passed = eval["passed"] and score >= 0.8
+            except Exception as error:
+                logger.error("failed_eval_passed_calculation", error=error, question=case["question"])
+
+            return {
+                "id": case["id"],
+                "question": case["question"],
+                "answer": answer,
+                "retrieval_recall": retrieval,
+                "latency": {
+                    **result["latency"],
+                    "judge": round(judge_time, 2),
+                },
+                "eval": eval,
+                "score": score,
+                "passed": passed,
+            }
         except Exception as error:
-            logger.error("failed_eval_passed_calculation", error=error, question=case["question"])
-
-        return {
-            "id": case["id"],
-            "question": case["question"],
-            "answer": answer,
-            "retrieval_recall": retrieval,
-            "latency": {
-                **result["latency"],
-                "judge": round(judge_time, 2),
-            },
-            "eval": eval,
-            "score": score,
-            "passed": passed,
-        }
+            logger.error("failed_eval", error=error, question=case["question"])
+            raise error

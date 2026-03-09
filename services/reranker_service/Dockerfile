@@ -1,35 +1,59 @@
-# ────────────────────────────────────────────────
-# Builder stage: install deps using uv
-FROM ghcr.io/astral-sh/uv:python3.11-alpine AS builder
-
-# Add build deps if needed (usually not for your stack)
-# RUN apk add --no-cache build-base
+############################
+# Builder stage
+############################
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Optimize: copy only lockfile first → great cache hit if deps unchanged
-COPY uv.lock pyproject.toml ./
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV UV_NO_CACHE=1
+ENV HF_HOME=/tmp/hf
 
-# Install runtime deps only (no dev/tools)
-# --system = install globally in image (no venv)
-# --no-install-project = skip installing the project itself yet
-RUN uv sync --frozen --no-install-project --no-dev
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    tesseract-ocr \
+    libtesseract-dev \
+    && rm -rf /var/lib/apt/lists/*
+    
+RUN pip install --no-cache-dir uv
 
-# ────────────────────────────────────────────────
-# Final runtime stage: tiny base + copied artifacts
-FROM python:3.11-alpine
+# Copy dependency files first → great caching
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --frozen --no-dev --no-install-project
+
+############################
+# Final runtime stage
+############################
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/tmp/hf
+ENV TRANSFORMERS_CACHE=/tmp/hf
+ENV XDG_CACHE_HOME=/tmp/.cache
 
-# Copy your actual code (changes often → last layer)
-COPY . .
+# [Existing ENV variables...]
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Ensure PATH has binaries (uv installs to /usr/local/bin)
-ENV PATH="/usr/local/bin:$PATH"
+# 1. Copy the virtual environment
+COPY --from=builder /app/.venv /app/.venv
 
-# Run (use gunicorn or uvicorn directly in prod)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+# 2. Copy application code
+COPY app/ app/
+
+# Create non-root user (very good practice)
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8001
+
+# For CPU with 4 workers
+CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8001", "--log-level", "info", "--access-logfile", "-", "--error-logfile", "-"]
+
+# For GPU only 1 worker
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

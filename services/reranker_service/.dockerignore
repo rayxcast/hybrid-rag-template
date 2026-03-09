@@ -1,15 +1,22 @@
+# Python / dev artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-.env
 .venv/
-.git/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+uv.lock.bak
+
+# Docker / build
+*.dockerignore
+.git
 .gitignore
-README.md
-tests/
-docs/
-notebooks/
-*.log
 .DS_Store
+
+# Logs / temp
+*.log
+/tmp
+*.md

@@ -1,3 +1,9 @@
+import os
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
@@ -6,6 +12,11 @@ import onnxruntime as ort
 
 app = FastAPI()
 
+# At top of main.py, after app = FastAPI()
+logging.basicConfig(level=logging.INFO)
+# Or better, route to uvicorn.error for visibility
+logger = logging.getLogger("uvicorn.error")
+logger.setLevel(logging.INFO)
 
 def get_execution_providers():
     available = ort.get_available_providers()
@@ -34,14 +45,16 @@ class RerankResponse(BaseModel):
 
 
 @app.post("/rerank", response_model=RerankResponse)
-async def rerank(request: RerankRequest):
+def rerank(request: RerankRequest): # add async for GPU rerank and batching
+    # In rerank endpoint
+    logger.info(f"Start rerank in PID {os.getpid()} at {time.time()} | docs: {len(request.documents)}")
     scores = list(
         model.rerank(
             query=request.query,
             documents=request.documents,
         )
     )
-
+    logger.info(f"End rerank in PID {os.getpid()} at {time.time()}")
     return {"scores": scores}
 
 @app.get("/health")

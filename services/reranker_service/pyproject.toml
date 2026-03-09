@@ -3,14 +3,13 @@ name = "reranker-service"
 version = "0.1.0"
 description = "Standalone FastAPI reranker microservice"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.12.*"
 dependencies = [
     "fastapi>=0.115",
+    "gunicorn>=21.0.0",
     "uvicorn[standard]",
-    # fastembed: exclude on Intel macOS, include everywhere else
+    # "fastembed==0.5.0",
     'fastembed==0.5.0; sys_platform != "darwin" or platform_machine == "arm64"',
-    # "fastembed",
-    # "onnxruntime",
 ]
 
 [project.optional-dependencies]

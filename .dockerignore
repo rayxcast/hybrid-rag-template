@@ -24,3 +24,9 @@ docker-compose.override.yml
 # Logs / temp
 *.log
 /tmp/
+
+services/
+tests/
+docs/
+*.md
+eval_results/

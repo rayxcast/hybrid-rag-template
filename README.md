@@ -1,7 +1,5 @@
 # 🚀 Hybrid RAG Template: Production-Grade RAG System (FastAPI + Qdrant + Redis)
 
-[![Docker Image Size](https://img.shields.io/badge/docker-562MB-blue)](https://hub.docker.com/r/yourusername/rag-app)
-
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-Production-green)](https://fastapi.tiangolo.com/)
@@ -10,7 +8,7 @@
 
 A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template built for evaluation, benchmarking, and production deployment. Optimized for low-latency hybrid search (dense + sparse), precise retrieval, and scalable AI infrastructure.
 
-**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals — all in a lightweight Docker image (~562MB). Ideal for experimenting with RAG pipelines on real documents like 10-K reports. If you find it useful, star the repo! ⭐
+**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals. Ideal for experimenting with RAG pipelines on real documents like 10-K reports. If you find it useful, star the repo! ⭐
 
 
 ## 🏗 Architecture Diagram
@@ -94,9 +92,6 @@ If embedding model changes, you must:
 
 - Strict `.dockerignore` to avoid bloat
 
-- Final image size: **~562MB**
-
-
 ## 🚀 Quick Start
 
 **Prerequisites**: Docker and Docker Compose installed.
@@ -111,8 +106,14 @@ cd hybrid-rag-template
 
 2. Install dependencies (uv recommended)
 
+# For the main app + evaluation
 ```bash
-uv sync          # installs from pyproject.toml + creates uv.lock
+uv sync  # installs from pyproject.toml + creates uv.lock
+```
+
+# For the reranker microservice
+```bash
+uv sync --directory services/reranker_service
 ```
 
 3. Create `.env` File

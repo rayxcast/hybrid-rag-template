@@ -1,57 +1,53 @@
-# Stage 1: Builder (as root for installs)
+############################
+# Builder stage
+############################
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-ENV HF_HOME=/tmp/hf
-ENV TRANSFORMERS_CACHE=/tmp/hf
-ENV XDG_CACHE_HOME=/tmp/.cache
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV UV_NO_CACHE=1  
-# No cache during build to avoid bloat (use mount for speed if needed)
+ENV UV_NO_CACHE=1
+ENV HF_HOME=/tmp/hf
 
+# System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     tesseract-ocr \
     libtesseract-dev \
     && rm -rf /var/lib/apt/lists/*
-
+    
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml uv.lock* ./
+# Copy dependency files first → great caching
+COPY pyproject.toml uv.lock ./
 
-# Install deps (system-wide, no dev, no project editable here)
 RUN uv sync --frozen --no-dev --no-install-project
 
-# Stage 2: Runtime (slim, non-root)
+############################
+# Final runtime stage
+############################
 FROM python:3.12-slim
 
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/tmp/hf
 ENV TRANSFORMERS_CACHE=/tmp/hf
 ENV XDG_CACHE_HOME=/tmp/.cache
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV UV_NO_CACHE=1   
-# Disable at runtime
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    poppler-utils \
-    tesseract-ocr \
-    libtesseract-dev \
-    && rm -rf /var/lib/apt/lists/*
+# [Existing ENV variables...]
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy installed deps from builder (system site-packages)
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# 1. Copy the virtual environment
+COPY --from=builder /app/.venv /app/.venv
 
-# Copy app code
-COPY . .
+# 2. Copy application code
+COPY app/ app/
 
-# Non-root user
-RUN useradd -m appuser && chown -R appuser /app
+# Create non-root user (very good practice)
+RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000

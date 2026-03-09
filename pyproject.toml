@@ -69,8 +69,8 @@ exclude = [
 resolution = "highest"  # Switch back to highest (avoids lowest-direct warnings)
 default-groups = []     # Don't install dev by default
 
-[tool.uv.workspace]
-members = ["services/*"]  
+# [tool.uv.workspace]
+# members = ["services/*"]  
 
 [tool.ruff]
 line-length = 100
