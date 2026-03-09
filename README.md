@@ -18,37 +18,50 @@ flowchart TD
 
 %% Entry Layer
 User((User))
-User -->|HTTP Request| API[FastAPI Gateway]
+User -->|HTTP Request| API[FastAPI API Gateway<br/>RAG Orchestrator]
 
 %% Cache Layer
 API --> CacheCheck{Redis Semantic Cache}
 CacheCheck -->|Cache Hit| CachedResponse[Cached Response]
 CachedResponse --> User
-CacheCheck -->|Cache Miss| Embed[Embedding Model]
+CacheCheck -->|Cache Miss| Retrieval
 
-%% Hybrid Retrieval
-subgraph Hybrid_Retrieval
-    Embed -->|Dense Vector| VectorDB[(Qdrant - Dense)]
-    API -->|Sparse Query| BM25[(Postgres / BM25 - Sparse)]
-    VectorDB --> Merge[Result Merge]
-    BM25 --> Merge
+%% Retrieval Layer
+subgraph Retrieval_Pipeline
+    Retrieval[Query Processing]
+    Retrieval --> Embed[Dense Embedding Provider]
+    Embed --> HybridSearch
 end
 
-%% Reranking
-%% FIX: Wrap text in double quotes to handle parentheses
-Merge --> Reranker["Cross-Encoder Reranker<br/>(ONNX Runtime)"]
-Reranker -->|Top-K Context| Context[Context Builder]
+%% Vector Database
+HybridSearch[Hybrid Search Request] --> Qdrant[(Qdrant Vector DB<br/>Dense + Sparse Index)]
 
-%% LLM Routing
-%% FIX: Wrap multi-line text in quotes
+Qdrant --> Candidates[Top-K Retrieved Chunks]
+
+%% Reranker Microservice
+Candidates -->|HTTP Request| RerankerService["Reranker Service<br/>Cross-Encoder Inference<br/>(Batching + GPU Optional)"]
+
+RerankerService --> Ranked[Top Ranked Chunks]
+
+%% Context Assembly
+Ranked --> Context[Context Builder]
+
+%% Prompt Layer
 Context --> Prompt["Prompt Assembly<br/>(System + Context + User Query)"]
-Prompt --> Router{LiteLLM Router}
-Router -->|Provider Selection| LLM["LLM Provider<br/>(GPT / Claude / etc.)"]
 
-%% Post-Processing
+%% LLM Router
+Prompt --> Router{LiteLLM Router}
+
+Router -->|Provider Selection| LLM["LLM Provider<br/>(OpenAI / Claude / etc.)"]
+
+%% Post Processing
 LLM --> Guardrails["Output Guardrails<br/>(Grounding + Schema Validation)"]
-Guardrails --> Logger[Structured Logging & Observability]
+
+%% Observability
+Guardrails --> Logger["Structured Logging<br/>+ Stage Latency Tracing"]
+
 Logger --> CacheWrite[Write to Redis Cache]
+
 CacheWrite --> User
 ```
 
