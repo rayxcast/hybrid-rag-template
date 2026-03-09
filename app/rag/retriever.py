@@ -21,7 +21,7 @@ class Retriever:
         self.vector_store_provider = get_vector_store_provider()
         self.config = app_settings
 
-    def retrieve(self, query: str, support_hybrid: bool = True):
+    async def retrieve(self, query: str, support_hybrid: bool = True):
         try:
             index = VectorStoreIndex.from_vector_store(self.vector_store_provider.get_vector_store())
             mode = "hybrid" if self.config.RETRIEVAL_MODE == "hybrid" and support_hybrid else "default"
@@ -33,7 +33,7 @@ class Retriever:
                 vector_store_query_mode=mode
             )
             
-            retrieved_nodes = retriever.retrieve(query)
+            retrieved_nodes = await retriever.aretrieve(query)
             if retrieved_nodes:
                 return retrieved_nodes
 

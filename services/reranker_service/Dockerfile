@@ -52,8 +52,4 @@ USER appuser
 
 EXPOSE 8001
 
-# For CPU with 4 workers
-CMD ["gunicorn", "app.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8001", "--log-level", "info", "--access-logfile", "-", "--error-logfile", "-"]
-
-# For GPU only 1 worker
-# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1", "--log-level", "info"]

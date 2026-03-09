@@ -4,11 +4,10 @@ import json
 from app.evaluation.evaluator import RAGEvaluator
 from app.evaluation.eval_dataset import EVAL_SET
 from app.rag.pipeline import HybridRAG
+from app.config import app_settings
 
 rag = HybridRAG()
 evaluator = RAGEvaluator(rag)
-
-CONCURRENCY_LIMIT = 16  # Adjust based on your machine / reranker capacity
 
 async def evaluate_with_timer(semaphore, case):
     async with semaphore:
@@ -26,7 +25,7 @@ async def evaluate_with_timer(semaphore, case):
 async def main():
     start_time_global = time.time()
 
-    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+    semaphore = asyncio.Semaphore(app_settings.RERANKER_CONCURRENCY_LIMIT)
 
     # Create tasks for all cases
     tasks = [evaluate_with_timer(semaphore, case) for case in EVAL_SET]
@@ -59,7 +58,7 @@ async def main():
     }
 
     print("\n" + "="*50)
-    print("EVALUATION SUMMARY (parallel, max concurrency = 16)")
+    print(f"EVALUATION SUMMARY (parallel, max concurrency = {app_settings.RERANKER_CONCURRENCY_LIMIT})")
     print(f"Overall accuracy:      {summary['avg_accuracy']}")
     print(f"Cases evaluated:        {summary['num_cases_evaluated']}/{len(EVAL_SET)}")
     print(f"Cases failed:           {summary['num_cases_failed']}")
@@ -74,7 +73,7 @@ async def main():
         "results": results,
         "overall": summary,
         "metadata": {
-            "concurrency_limit": CONCURRENCY_LIMIT,
+            "RERANKER_CONCURRENCY_LIMIT": app_settings.RERANKER_CONCURRENCY_LIMIT,
             "total_time_seconds": round(time.time() - start_time_global, 2),
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }

@@ -34,6 +34,7 @@ class AppSettings(BaseSettings):
     # Reranker provider
     RERANKER_PROVIDER: str = "remote" # "fastembed"
     RERANKER_MODEL: str = "jinaai/jina-reranker-v1-tiny-en" # "light+fast but English only "jinaai/jina-reranker-v1-turbo-en" vs "BAAI/bge-reranker-base" for balanced production choice Multilingual, but much slower + high size (1.1 GB)
+    RERANKER_CONCURRENCY_LIMIT: int = 16  # Adjust based on your machine / reranker capacity
 
     # Retrieval config
     SIMILARITY_TOP_K: int = 50 # 50 – 100 This is your "Recall" phase. You need enough candidates from both vector and keyword search so the reranker has the "correct" information available to find.

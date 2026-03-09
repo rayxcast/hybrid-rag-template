@@ -83,7 +83,7 @@ class RAGEvaluator:
     # faithfulness evaluation with LLM as judge
     # ----------------------------
 
-    def llm_as_judge(self, question, answer, retrieved_nodes, should_refuse=False):
+    async def llm_as_judge(self, question, answer, retrieved_nodes, should_refuse=False):
         context = "\n\n".join([n.node.text for n in retrieved_nodes[:app_settings.FINAL_CONTEXT_N]])
         prompt = f"""
             You are an expert AI Auditor specializing in hybrid Retrieval-Augmented Generation (RAG) systems. 
@@ -110,7 +110,7 @@ class RAGEvaluator:
             - Generated Answer: {answer}
         """
 
-        response = self.llm.complete(prompt)
+        response = await self.llm.acomplete(prompt)
         return self.parse_llm_json_response(response.text)
 
     # ----------------------------
@@ -139,7 +139,7 @@ class RAGEvaluator:
             # PASS LOGIC
             # ----------------------------
             start = time.time()
-            eval = self.llm_as_judge(
+            eval = await self.llm_as_judge(
                 case["question"],
                 answer,
                 retrieved_nodes,
@@ -169,6 +169,7 @@ class RAGEvaluator:
                 "score": score,
                 "passed": passed,
             }
+
         except Exception as error:
             logger.error("failed_eval", error=error, question=case["question"])
             raise error

@@ -13,10 +13,10 @@ class BaseVectorStoreProvider(ABC):
     def supports_sparse(self) -> bool:
         pass
 
-    def init_collection_if_needed(self):
+    async def init_collection_if_needed(self):
         """Optional lifecycle hook"""
         pass
 
-    def delete_collection(self):
+    async def delete_collection(self):
         """Optional lifecycle hook"""
         pass

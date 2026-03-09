@@ -94,10 +94,10 @@ async def ingest_documents(input_path: str, recreate: bool = False):
         indexer = HybridIndexer()
 
         if recreate:
-            deleted = indexer.store_provider.delete_collection()
+            deleted = await indexer.store_provider.delete_collection()
             logger.info(f"{deleted["collection_name"]} successfully deleted.") if deleted["deleted"] else logger.info(f"Failed to delete {deleted["collection_name"]}.")
 
-        indexer.store_provider.init_collection_if_needed()
+        await indexer.store_provider.init_collection_if_needed()
         
         # ---- Load Documents
         start = time.time()

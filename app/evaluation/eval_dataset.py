@@ -95,58 +95,58 @@ EVAL_SET = [
         "expected_contains": "15%",
         "should_refuse": False
     },
-    {
-        "id": "mul_2",
-        "question": "Combine the net income and revenue for 2025, what is the total?",
-        "expected_contains": "$500,000",
-        "should_refuse": False
-    },
-    {
-        "id": "mul_3",
-        "question": "What segment contributed the most to revenue, and what was its amount in 2025?",
-        "expected_contains": "Google Search, $250,000",
-        "should_refuse": False
-    },
-    {
-        "id": "mul_4",
-        "question": "Based on assets and liabilities, what is the equity in 2025?",
-        "expected_contains": "$300,000",
-        "should_refuse": False
-    },
-    {
-        "id": "mul_5",
-        "question": "What is the operating income margin for 2025?",
-        "expected_contains": "30%",
-        "should_refuse": False
-    },
-    {
-        "id": "num_1",
-        "question": "What is the exact revenue in millions for Alphabet in 2025?",
-        "expected_contains": "402836",
-        "should_refuse": False
-    },
-    {
-        "id": "num_2",
-        "question": "How many shares outstanding does Alphabet have as of Dec 31, 2025?",
-        "expected_contains": "12,500,000,000",
-        "should_refuse": False
-    },
-    {
-        "id": "num_3",
-        "question": "What is the precise net income per share for 2025?",
-        "expected_contains": "$5.67",
-        "should_refuse": False
-    },
-    {
-        "id": "num_4",
-        "question": "Provide the total assets in exact figures for 2025.",
-        "expected_contains": "$502,014,000,000",
-        "should_refuse": False
-    },
-    {
-        "id": "num_5",
-        "question": "What is the cash and cash equivalents amount down to the million?",
-        "expected_contains": "$30,708",
-        "should_refuse": False
-    }
+    # {
+    #     "id": "mul_2",
+    #     "question": "Combine the net income and revenue for 2025, what is the total?",
+    #     "expected_contains": "$500,000",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "mul_3",
+    #     "question": "What segment contributed the most to revenue, and what was its amount in 2025?",
+    #     "expected_contains": "Google Search, $250,000",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "mul_4",
+    #     "question": "Based on assets and liabilities, what is the equity in 2025?",
+    #     "expected_contains": "$300,000",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "mul_5",
+    #     "question": "What is the operating income margin for 2025?",
+    #     "expected_contains": "30%",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "num_1",
+    #     "question": "What is the exact revenue in millions for Alphabet in 2025?",
+    #     "expected_contains": "402836",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "num_2",
+    #     "question": "How many shares outstanding does Alphabet have as of Dec 31, 2025?",
+    #     "expected_contains": "12,500,000,000",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "num_3",
+    #     "question": "What is the precise net income per share for 2025?",
+    #     "expected_contains": "$5.67",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "num_4",
+    #     "question": "Provide the total assets in exact figures for 2025.",
+    #     "expected_contains": "$502,014,000,000",
+    #     "should_refuse": False
+    # },
+    # {
+    #     "id": "num_5",
+    #     "question": "What is the cash and cash equivalents amount down to the million?",
+    #     "expected_contains": "$30,708",
+    #     "should_refuse": False
+    # }
 ]

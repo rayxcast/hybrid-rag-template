@@ -17,7 +17,7 @@ class LLMGenerator:
         from llama_index.core import Settings 
         self.llm = Settings.llm
     
-    def generate(self, query: str, final_nodes: list):
+    async def generate(self, query: str, final_nodes: list):
         try:
             if not final_nodes:
                 # logger.warning("No relevant nodes retrieved for query", query=query)
@@ -28,7 +28,7 @@ class LLMGenerator:
                 # Build simple context from retrieved nodes
                 context_str = "\n\n".join([n.node.text for n in final_nodes])
                 prompt = qa_prompt.format(context_str=context_str, query_str=query)
-                response = self.llm.complete(prompt)
+                response = await self.llm.acomplete(prompt)
                 answer = response.text
                 sources = [n.node.metadata for n in final_nodes]
 

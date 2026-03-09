@@ -1,5 +1,5 @@
 from llama_index.vector_stores.qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient, models
+from qdrant_client import QdrantClient, AsyncQdrantClient, models
 from app.config import app_settings
 from .base import BaseVectorStoreProvider
 
@@ -10,11 +10,12 @@ class QdrantHybridStore(BaseVectorStoreProvider):
 
     def __init__(self, sparse_provider=None):
         self.client = QdrantClient(url=app_settings.QDRANT_URL)
+        self.aclient = AsyncQdrantClient(url=app_settings.QDRANT_URL)
         self.sparse = sparse_provider
 
-    def init_collection_if_needed(self):
+    async def init_collection_if_needed(self):
         if not self.client.collection_exists(app_settings.COLLECTION_NAME):
-            self.client.create_collection(
+            await self.client.create_collection(
                 collection_name=app_settings.COLLECTION_NAME,
                 vectors_config=models.VectorParams(
                     size=app_settings.EMBEDDING_DIM,
@@ -28,7 +29,8 @@ class QdrantHybridStore(BaseVectorStoreProvider):
 
     def get_vector_store(self):
         return QdrantVectorStore(
-            client=self.client,
+            client=self.client,     # Used for sync calls
+            aclient=self.aclient,   # Used for async calls
             collection_name=app_settings.COLLECTION_NAME,
             enable_hybrid=True,
             sparse_doc_fn=self.sparse.embed_documents,
@@ -37,9 +39,9 @@ class QdrantHybridStore(BaseVectorStoreProvider):
             use_default_sparse_query_encoder=False,
         )
 
-    def delete_collection(self):
+    async def delete_collection(self):
         try:
-            self.client.delete_collection(app_settings.COLLECTION_NAME)
+            await self.client.delete_collection(app_settings.COLLECTION_NAME)
             return {
                 "deleted": True,
                 "collection_name": app_settings.COLLECTION_NAME
