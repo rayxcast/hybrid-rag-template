@@ -18,7 +18,7 @@ flowchart TD
 
 %% Entry Layer
 User((User))
-User -->|HTTP Request| API[FastAPI API Gateway<br/>RAG Orchestrator]
+User -->|HTTP Request| API[FastAPI API Gateway<br/>Async RAG Orchestrator]
 
 %% Cache Layer
 API --> CacheCheck{Redis Semantic Cache}
@@ -28,26 +28,33 @@ CacheCheck -->|Cache Miss| Retrieval
 
 %% Retrieval Layer
 subgraph Retrieval_Pipeline
-    Retrieval[Query Processing]
-    Retrieval --> Embed[Dense Embedding Provider]
-    Embed --> HybridSearch
+Retrieval[Query Processing]
+Retrieval --> Embed[Dense Embedding Provider]
+Embed --> HybridSearch
 end
 
 %% Vector Database
-HybridSearch[Hybrid Search Request] --> Qdrant[(Qdrant Vector DB<br/>Dense + Sparse Index)]
+HybridSearch --> Qdrant[(Qdrant Vector DB<br/>Dense + Sparse Index)]
 
 Qdrant --> Candidates[Top-K Retrieved Chunks]
 
 %% Reranker Microservice
-Candidates -->|HTTP Request| RerankerService["Reranker Service<br/>Cross-Encoder Inference<br/>(Batching + GPU Optional)"]
+Candidates -->|Async HTTP| RerankerAPI[Reranker Service API]
 
-RerankerService --> Ranked[Top Ranked Chunks]
+subgraph Reranker_Service
+RerankerAPI --> BatchQueue[Async Request Queue]
+BatchQueue --> BatchWorkers[Batch Workers Pool]
+BatchWorkers --> BatchBuilder[Pair-Aware Batch Builder<br/>MAX_BATCH_REQUESTS + MAX_BATCH_PAIRS]
+BatchBuilder --> CrossEncoder[Cross-Encoder Model<br/>ONNX Runtime Inference]
+end
+
+CrossEncoder --> Ranked[Top Ranked Chunks]
 
 %% Context Assembly
 Ranked --> Context[Context Builder]
 
 %% Prompt Layer
-Context --> Prompt["Prompt Assembly<br/>(System + Context + User Query)"]
+Context --> Prompt["Prompt Assembly<br/>(System + Context + Query)"]
 
 %% LLM Router
 Prompt --> Router{LiteLLM Router}
@@ -58,13 +65,12 @@ Router -->|Provider Selection| LLM["LLM Provider<br/>(OpenAI / Claude / etc.)"]
 LLM --> Guardrails["Output Guardrails<br/>(Grounding + Schema Validation)"]
 
 %% Observability
-Guardrails --> Logger["Structured Logging<br/>+ Stage Latency Tracing"]
+Guardrails --> Logger["Structured Logging<br/>Stage Latency + Concurrency Metrics"]
 
 Logger --> CacheWrite[Write to Redis Cache]
 
 CacheWrite --> User
 ```
-
 
 ## 🚨 Embedding Model
 
