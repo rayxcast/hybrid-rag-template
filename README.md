@@ -228,10 +228,10 @@ This 100% judge-pass rate demonstrates strong faithfulness and precision across 
             └── 📁endpoints
                 ├── ingest.py
                 ├── query.py
-        └── 📁core 
+        └── 📁core
             └── 📁observability
                 ├── timing.py
-        └── 📁evaluation # Eval framework
+        └── 📁evaluation
             ├── eval_dataset.py
             ├── evaluator.py
             ├── run_eval.py
@@ -249,6 +249,7 @@ This 100% judge-pass rate demonstrates strong faithfulness and precision across 
                 ├── base.py
                 ├── factory.py
                 ├── fastembed_reranker.py
+                ├── remote_reranker.py
             └── 📁vectorstores
                 ├── base.py
                 ├── factory.py
@@ -265,11 +266,18 @@ This 100% judge-pass rate demonstrates strong faithfulness and precision across 
         ├── config.py
         ├── main.py
     └── 📁data
-        ├── document.pdf
     └── 📁eval_results
         ├── eval_results.json
+    └── 📁services
+        └── 📁reranker_service
+            └── 📁app
+                ├── config.py
+                ├── main.py
+            ├── .dockerignore
+            ├── Dockerfile
+            ├── pyproject.toml
+            ├── uv.lock
     ├── .dockerignore
-    ├── .env
     ├── .gitignore
     ├── docker-compose.yml
     ├── Dockerfile
