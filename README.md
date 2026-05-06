@@ -8,8 +8,7 @@
 
 A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template built for evaluation, benchmarking, and production deployment. Optimized for low-latency hybrid search (dense + sparse), precise retrieval, and scalable AI infrastructure.
 
-**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals. Ideal for experimenting with RAG pipelines on real documents like 10-K reports. If you find it useful, star the repo! ⭐
-
+**Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals.
 
 ## 🏗 Architecture Diagram
 
