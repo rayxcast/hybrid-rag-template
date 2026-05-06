@@ -9,8 +9,6 @@ from llama_index.readers.file import PDFReader, PyMuPDFReader
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import Document
 
-from rag.vectorstores.factory import get_vector_store_provider
-
 logger = structlog.get_logger()
 
 configure_llm_settings()
