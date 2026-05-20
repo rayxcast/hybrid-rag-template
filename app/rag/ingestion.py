@@ -86,21 +86,81 @@ def load_documents(input_path: str):
 # ------------------------
 # Ingest Pipeline
 # ------------------------
-async def ingest_documents(input_path: str, recreate: bool = False):
+async def ingest_documents(
+    input_path: str,
+    recreate: bool = False,
+    request_id: str | None = None,
+    source_name: str | None = None,
+    source_type: str | None = None,
+):
+    total_start = time.perf_counter()
+    timings = {}
+    trace = {
+        "request_id": request_id,
+        "operation": "ingest",
+        "source": {
+            "name": source_name or input_path,
+            "type": source_type or "path",
+        },
+        "recreate": recreate,
+        "providers": {
+            "llm": app_settings.LLM_PROVIDER,
+            "embedding": app_settings.DENSE_PROVIDER,
+            "sparse": app_settings.SPARSE_PROVIDER,
+            "reranker": app_settings.RERANKER_PROVIDER,
+        },
+        "models": {
+            "llm": app_settings.LLM_MODEL,
+            "embedding": app_settings.EMBEDDING_MODEL,
+            "sparse": app_settings.SPARSE_MODEL,
+            "reranker": app_settings.RERANKER_MODEL,
+        },
+        "retrieval_mode": app_settings.RETRIEVAL_MODE,
+        "warnings": [
+            "Reset/re-ingest when embedding provider, embedding model, or embedding dimension changes.",
+        ],
+    }
+
     try:
-        logger.info("Ingesting file.", file_path=input_path)
+        logger.info(
+            "ingestion_started",
+            request_id=request_id,
+            source_name=source_name or input_path,
+            source_type=source_type or "path",
+            recreate=recreate,
+            llm_provider=app_settings.LLM_PROVIDER,
+            embedding_provider=app_settings.DENSE_PROVIDER,
+            retrieval_mode=app_settings.RETRIEVAL_MODE,
+        )
         indexer = HybridIndexer()
 
         if recreate:
+            start = time.perf_counter()
             deleted = await indexer.store_provider.delete_collection()
-            logger.info(f"{deleted["collection_name"]} successfully deleted.") if deleted["deleted"] else logger.info(f"Failed to delete {deleted["collection_name"]}.")
+            timings["delete_collection"] = round(time.perf_counter() - start, 4)
+            logger.info(
+                "collection_delete_finished",
+                request_id=request_id,
+                collection_name=deleted["collection_name"],
+                deleted=deleted["deleted"],
+                existed=deleted.get("existed"),
+                duration_seconds=timings["delete_collection"],
+            )
 
+        start = time.perf_counter()
         await indexer.store_provider.init_collection_if_needed()
+        timings["init_collection"] = round(time.perf_counter() - start, 4)
         
         # ---- Load Documents
-        start = time.time()
+        start = time.perf_counter()
         documents = load_documents(input_path)
-        logger.info("Documents loaded", count=len(documents), seconds=time.time() - start)
+        timings["load_documents"] = round(time.perf_counter() - start, 4)
+        logger.info(
+            "documents_loaded",
+            request_id=request_id,
+            document_count=len(documents),
+            duration_seconds=timings["load_documents"],
+        )
 
         # ---- Chunking
         splitter = SentenceSplitter(
@@ -108,21 +168,48 @@ async def ingest_documents(input_path: str, recreate: bool = False):
             chunk_overlap=app_settings.CHUNK_OVERLAP,
         )
 
-        start = time.time()
+        start = time.perf_counter()
         nodes = splitter.get_nodes_from_documents(documents)
-        logger.info("Nodes created", count=len(nodes), seconds=time.time() - start)
+        timings["chunking"] = round(time.perf_counter() - start, 4)
+        logger.info(
+            "nodes_created",
+            request_id=request_id,
+            chunk_count=len(nodes),
+            duration_seconds=timings["chunking"],
+        )
 
         # ---- Indexing (Dense + Sparse + Insert)
-        start = time.time()
+        start = time.perf_counter()
         index = indexer.build_index(nodes)
-        logger.info("Index built", seconds=time.time() - start)
+        timings["indexing"] = round(time.perf_counter() - start, 4)
+        timings["total"] = round(time.perf_counter() - total_start, 4)
+        logger.info(
+            "index_built",
+            request_id=request_id,
+            duration_seconds=timings["indexing"],
+            total_duration_seconds=timings["total"],
+        )
 
         return {
             "status": "success",
             "docs_ingested": len(documents),
             "nodes": len(nodes),
+            "trace": {
+                **trace,
+                "status": "success",
+                "document_count": len(documents),
+                "chunk_count": len(nodes),
+                "timings": timings,
+            },
         }
 
     except Exception as e:
-        logger.error("Ingest failed", error=str(e), exc_info=True)
+        timings["total"] = round(time.perf_counter() - total_start, 4)
+        logger.error(
+            "ingestion_failed",
+            request_id=request_id,
+            error=str(e),
+            duration_seconds=timings["total"],
+            exc_info=True,
+        )
         raise

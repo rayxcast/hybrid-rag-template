@@ -16,5 +16,5 @@ class HybridIndexer:
             nodes,
             storage_context=storage_context,
             show_progress=True,
-            use_async=True
+            use_async=False
         )

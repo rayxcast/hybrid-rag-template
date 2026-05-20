@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hybrid RAG System</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="identity">
+          <div>
+            <p class="eyebrow">Hybrid RAG Console</p>
+            <h1>ChatDoc</h1>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <p class="lede">
+            Upload a document and analyze it using grounded AI answer.
+          </p>
+        </div>
+        <div class="status-card" aria-live="polite">
+          <span id="statusDot" class="status-dot"></span>
+          <div>
+            <p id="statusLabel" class="status-label">Checking index</p>
+            <p id="statusMeta" class="status-meta">Connecting to FastAPI and Qdrant</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="notice-strip" aria-label="Demo caveats">
+        <div>
+          <strong>Grounded by retrieval</strong>
+          <span>Answers are constrained by retrieved chunks and visible trace metadata.</span>
+        </div>
+        <div>
+          <strong>Rebuild on provider changes</strong>
+          <span>Reset/re-ingest when embedding provider, model, or dimension changes.</span>
+        </div>
+      </section>
+
+      <div id="globalAlert" class="alert hidden" role="alert"></div>
+
+      <section class="workflow" aria-label="Demo workflow">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <span class="step">01</span>
+              <h2>Document Ingestion</h2>
+            </div>
+            <p>PDF, TXT, or MD</p>
+          </div>
+
+          <form id="ingestForm" class="stack">
+            <label id="dropZone" class="drop-zone" for="fileInput">
+              <input id="fileInput" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
+              <span class="upload-icon" aria-hidden="true">+</span>
+              <strong id="fileTitle">Choose a file or drop it here</strong>
+              <span id="fileHint">The backend ingests the uploaded file directly.</span>
+            </label>
+
+            <label class="check-row">
+              <input id="recreateInput" type="checkbox" />
+              <span>Reset index before ingesting</span>
+            </label>
+
+            <button id="ingestButton" class="primary-button" type="submit">
+              <span class="button-label">Ingest document</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+
+          <div id="ingestResult" class="result-box hidden" aria-live="polite"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <span class="step">02</span>
+              <h2>Ask Questions</h2>
+            </div>
+            <p id="askStateLabel">Waiting for an index</p>
+          </div>
+
+          <div class="chips" aria-label="Example questions">
+            <button class="chip" type="button">What is this document about?</button>
+            <button class="chip" type="button">Summarize the key points.</button>
+            <button class="chip" type="button">What facts are most important?</button>
+          </div>
+
+          <form id="queryForm" class="stack">
+            <label class="sr-only" for="questionInput">Question</label>
+            <textarea
+              id="questionInput"
+              rows="5"
+              placeholder="Ingest a document first, then ask a question..."
+              disabled
+            ></textarea>
+            <button id="queryButton" class="primary-button" type="submit" disabled>
+              <span class="button-label">Ask question</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+        </article>
+      </section>
+
+      <section id="answerSection" class="answer-section hidden" aria-live="polite">
+        <div class="answer-header">
+          <div>
+            <p class="eyebrow">Answer</p>
+            <h2>Generated response</h2>
+          </div>
+          <div id="responseBadges" class="badges"></div>
+        </div>
+        <div id="answerText" class="answer-text"></div>
+        <div id="sourcesSection" class="sources-section hidden">
+          <h3>Retrieved sources</h3>
+          <div id="sourcesList" class="sources-list"></div>
+        </div>
+        <div id="traceSection" class="trace-section hidden">
+          <div class="trace-heading">
+            <div>
+              <p class="eyebrow">Trace</p>
+              <h3>Retrieval Trace</h3>
+            </div>
+            <span id="traceRequestId" class="request-id"></span>
+          </div>
+          <div id="traceSummary" class="trace-grid"></div>
+          <div id="traceWarnings" class="trace-warnings hidden"></div>
+          <div id="traceChunks" class="trace-chunks hidden"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

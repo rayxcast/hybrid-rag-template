@@ -56,7 +56,11 @@ async def init_cache_index():
         logger.error("Failed to initialize semantic cache index", error=str(e))
         raise
 
-async def get_semantic(query: str, threshold: float = 0.92) -> Optional[Tuple[dict, float]]:
+async def get_semantic(
+    query: str,
+    threshold: float = 0.92,
+    return_embedding: bool = False,
+) -> Optional[Tuple[dict, float]] | tuple[dict | None, float, list[float] | None]:
     """Semantic cache lookup with vector similarity."""
     try:
         norm_query = normalize_query(query)
@@ -83,7 +87,7 @@ async def get_semantic(query: str, threshold: float = 0.92) -> Optional[Tuple[di
             distance_str = top_result.get("vector_distance")
             if distance_str is None:
                 logger.warning("No vector_distance in result", result=top_result)
-                return None, 0.0
+                return (None, 0.0, q_emb) if return_embedding else (None, 0.0)
             
             distance = float(distance_str)
             
@@ -98,23 +102,32 @@ async def get_semantic(query: str, threshold: float = 0.92) -> Optional[Tuple[di
                     similarity=similarity
                 )
                 cached_data = json.loads(top_result["answer"])
-                return cached_data, similarity  # return similarity score
+                return (
+                    (cached_data, similarity, q_emb)
+                    if return_embedding
+                    else (cached_data, similarity)
+                )
             
             else:
                 logger.debug("Cache miss - similarity too low", similarity=similarity)
         
         logger.debug("Semantic cache miss - no results")
-        return None, 0.0
+        return (None, 0.0, q_emb) if return_embedding else (None, 0.0)
     
     except Exception as e:
         logger.error("Semantic cache get failed", error=str(e), exc_info=True)
-        return None, 0.0
+        return (None, 0.0, None) if return_embedding else (None, 0.0)
 
-async def set_semantic(query: str, answer: str, ttl: int = 3600):
+async def set_semantic(
+    query: str,
+    answer: object,
+    ttl: int = 3600,
+    embedding: list[float] | None = None,
+):
     """Store with vector embedding for similarity search."""
     try:
         norm_query = normalize_query(query)
-        emb_list = await Settings.embed_model.aget_text_embedding(norm_query)
+        emb_list = embedding or await Settings.embed_model.aget_text_embedding(norm_query)
         
         # Convert list[float] → bytes (required for Redis vector field)
         emb_bytes = np.array(emb_list, dtype=np.float32).tobytes()

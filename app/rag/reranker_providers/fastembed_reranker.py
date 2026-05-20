@@ -2,6 +2,7 @@ from fastembed.rerank.cross_encoder import TextCrossEncoder
 from .base import BaseReranker
 from typing import List
 from app.config import app_settings
+from app.rag.trace import attach_rerank_score
 import onnxruntime as ort
 
 
@@ -39,5 +40,8 @@ class FastEmbedReranker(BaseReranker):
             key=lambda x: x[1],
             reverse=True,
         )
+
+        for node, score in reranked[:top_n]:
+            attach_rerank_score(node, score)
 
         return [node for node, _ in reranked[:top_n]]

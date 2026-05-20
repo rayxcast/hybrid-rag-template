@@ -154,6 +154,119 @@ docker compose up --build
 
 - Redis: localhost:6379 (use Redis Insight for monitoring)
 
+## 🎥 Demo UI
+
+This repo includes a lightweight web UI for recording an upload → ingest → ask workflow without using Swagger.
+
+Start the stack:
+
+```bash
+docker compose up --build
+```
+
+Open the demo UI:
+
+```text
+http://localhost:8000/
+```
+
+Use the page to:
+
+- Upload a PDF, TXT, or MD file.
+- Optionally check **Reset index before ingesting** to recreate the Qdrant collection before indexing the uploaded document.
+- Click **Ingest document** and wait for the success summary.
+- Ask questions once ingestion succeeds, or immediately if the UI detects an existing populated Qdrant index.
+
+The UI calls:
+
+- `POST /ingest/` with multipart form data containing `file` and `recreate`.
+- `POST /query/` with JSON shaped like `{ "query": "..." }`.
+- `GET /status/` to detect whether an index is already available.
+
+Known limitations:
+
+- The current ingestion loader supports PDF, TXT, and MD in practice.
+- Query responses currently return `answer`, `sources`, `mode`, and cache fields. Richer chunk, SPLADE, hybrid, or rerank metadata will display automatically if the backend returns it later.
+- Large PDFs can take time to ingest because embedding, SPLADE sparse vectors, and indexing are CPU/network intensive.
+
+## 🆓 Google / Gemini Demo Mode
+
+You can run the same FastAPI routes and demo UI with Google AI Studio / Gemini instead of OpenAI. Create a Gemini API key in Google AI Studio, then set the provider values in `.env`.
+
+Recommended no-cost demo configuration:
+
+```env
+GOOGLE_API_KEY=your_google_ai_studio_key
+
+LLM_PROVIDER=google
+LLM_MODEL=gemini-2.5-flash
+LLM_MAX_TOKENS=2048
+LLM_CONTEXT_WINDOW=1000000
+
+DENSE_PROVIDER=google
+EMBEDDING_MODEL=gemini-embedding-2
+EMBEDDING_DIM=1536
+EMBED_BATCH_SIZE=100
+
+RETRIEVAL_MODE=hybrid
+```
+
+Short-term fallback if needed:
+
+```env
+LLM_MODEL=gemini-2.0-flash
+```
+
+As of May 20, 2026, Google lists `gemini-2.0-flash` as deprecated with shutdown on June 1, 2026, so prefer `gemini-2.5-flash` for demos.
+
+Start the app as usual:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:8000/
+```
+
+Important switching notes:
+
+- Re-ingest documents after changing `DENSE_PROVIDER`, `EMBEDDING_MODEL`, or `EMBEDDING_DIM`; embedding spaces are not interchangeable.
+- Use **Reset index before ingesting** in the demo UI, or set a different `COLLECTION_NAME`, to avoid mixing OpenAI and Gemini vectors in the same Qdrant collection.
+- Clear Redis or set `USE_CACHE=false` when switching embedding providers, because semantic cache vectors are also provider-specific.
+- For the lowest Google free-tier request count during a demo, set `USE_CACHE=false`. With cache enabled, a cache-miss query may call Gemini for semantic cache lookup, retrieval embedding, cache write, and answer generation.
+- Google free tier is meant for development and may use submitted content to improve Google products. Check Google AI Studio terms before uploading sensitive documents.
+
+## 🔎 Demo Tracing & Logs
+
+Every ingest and query request gets a `request_id`. The API returns it in the `X-Request-ID` response header and in the compact `trace` object shown by the demo UI.
+
+For readable local logs:
+
+```env
+LOG_FORMAT=console
+LOG_LEVEL=INFO
+```
+
+For JSON logs:
+
+```env
+LOG_FORMAT=json
+LOG_LEVEL=INFO
+```
+
+Follow logs during a demo:
+
+```bash
+docker compose logs -f app reranker_service
+```
+
+Trace responses include providers, models, retrieval mode, top-k, chunk IDs, source metadata, scores when available, latency timings, cache status, estimated provider calls, and rough-edge warnings. API keys, auth headers, tokens, and secrets are redacted from structured logs.
+
+Google AI Studio quota note: a single user question is not always a single Google API request. With semantic cache enabled and a cache miss, the app can make separate requests for cache lookup embedding, retrieval query embedding, cache storage embedding, and LLM generation. The app reuses the cache lookup embedding for cache storage when possible, and the trace panel shows estimated external calls.
+
 
 ## 🧪 Run Evaluation Suite
 
@@ -290,10 +403,16 @@ This 100% judge-pass rate demonstrates strong faithfulness and precision across 
 
 Tune via `.env` or `config.py`:
 
+App/logging
+- `LOG_LEVEL`
+- `LOG_FORMAT`
+
 RAG Settings
 - `RETRIEVAL_MODE`
 - `LLM_PROVIDER`
 - `LLM_MODEL`
+- `LLM_MAX_TOKENS`
+- `LLM_CONTEXT_WINDOW`
 - `USE_RERANKER`
 - `USE_CACHE`
 

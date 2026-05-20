@@ -2,8 +2,7 @@ import re
 import json
 import time
 from typing import Dict, Any, List, Optional
-from llama_index.llms.litellm import LiteLLM
-from app.config import app_settings
+from app.config import app_settings, get_llm
 import structlog
 import uuid
 
@@ -12,10 +11,9 @@ logger = structlog.get_logger()
 class RAGEvaluator:
     def __init__(self, rag_pipeline):
         self.rag = rag_pipeline
-        self.llm = LiteLLM(
-            model=f"{app_settings.EVAL_LLM_PROVIDER}/{app_settings.EVAL_LLM_MODEL}",
-            api_key=app_settings.OPENAI_API_KEY if app_settings.LLM_PROVIDER == "openai" else (app_settings.ANTHROPIC_API_KEY if app_settings.LLM_PROVIDER == "anthropic" else app_settings.LLAMA_CLOUD_API_KEY),
-            temperature=1
+        self.llm = get_llm(
+            provider=app_settings.EVAL_LLM_PROVIDER,
+            model=app_settings.EVAL_LLM_MODEL,
         )
 
     # ----------------------------

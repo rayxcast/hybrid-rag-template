@@ -1,6 +1,7 @@
 import httpx
 from .base import BaseReranker
 from app.config import app_settings
+from app.rag.trace import attach_rerank_score
 
 class RemoteReranker(BaseReranker):
 
@@ -25,6 +26,8 @@ class RemoteReranker(BaseReranker):
             results = response.json()["results"]
 
             # print("> remote reranker results:", results)
+            for node_index, score in results:
+                attach_rerank_score(nodes[node_index], score)
 
             return [nodes[r[0]] for r in results]
         

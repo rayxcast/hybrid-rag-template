@@ -14,8 +14,8 @@ class QdrantHybridStore(BaseVectorStoreProvider):
         self.sparse = sparse_provider
 
     async def init_collection_if_needed(self):
-        if not self.client.collection_exists(app_settings.COLLECTION_NAME):
-            await self.client.create_collection(
+        if not await self.aclient.collection_exists(app_settings.COLLECTION_NAME):
+            await self.aclient.create_collection(
                 collection_name=app_settings.COLLECTION_NAME,
                 vectors_config=models.VectorParams(
                     size=app_settings.EMBEDDING_DIM,
@@ -41,10 +41,18 @@ class QdrantHybridStore(BaseVectorStoreProvider):
 
     async def delete_collection(self):
         try:
-            await self.client.delete_collection(app_settings.COLLECTION_NAME)
+            if not await self.aclient.collection_exists(app_settings.COLLECTION_NAME):
+                return {
+                    "deleted": False,
+                    "collection_name": app_settings.COLLECTION_NAME,
+                    "existed": False,
+                }
+
+            await self.aclient.delete_collection(app_settings.COLLECTION_NAME)
             return {
                 "deleted": True,
-                "collection_name": app_settings.COLLECTION_NAME
+                "collection_name": app_settings.COLLECTION_NAME,
+                "existed": True,
             }
         except Exception as error:
             logger.error(
@@ -55,7 +63,8 @@ class QdrantHybridStore(BaseVectorStoreProvider):
 
         return {
             "deleted": False,
-            "collection_name": app_settings.COLLECTION_NAME
+            "collection_name": app_settings.COLLECTION_NAME,
+            "existed": None,
         }
     
     def supports_sparse(self) -> bool:

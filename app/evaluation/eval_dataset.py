@@ -150,3 +150,48 @@ EVAL_SET = [
         "should_refuse": False
     }
 ]
+
+EVAL_SET_OPS = [
+    {
+        "id": "fit_1",
+        "question": "Which three creators should be shortlisted first for the campaign?",
+        "expected_contains": ["Maya Chen", "Jordan Ellis", "Priya Shah"],
+        "should_refuse": False,
+        "type": "multi_hop_reasoning"
+    },
+    {
+        "id": "brand_safety_1",
+        "question": "Which creator requires human review because of brand safety concerns?",
+        "expected_contains": ["Theo Ramirez", "human review"],
+        "should_refuse": False,
+        "type": "risk_detection"
+    },
+    {
+        "id": "unanswerable_1",
+        "question": "What is the final signed contract value for each creator?",
+        "expected_contains": [],
+        "should_refuse": True,
+        "type": "unanswerable"
+    },
+    {
+        "id": "evals_1",
+        "question": "What evals should be used before deploying the screening agent?",
+        "expected_contains": ["grounding", "hallucination", "human escalation", "brand safety"],
+        "should_refuse": False,
+        "type": "eval_design"
+    },
+    {
+        "id": "paraphrase_1",
+        "question": "Who looks promising but should not be auto-approved without a person checking first?",
+        "expected_contains": ["Theo Ramirez"],
+        "should_refuse": False,
+        "type": "paraphrased"
+    },
+    {
+        "id": "numerical_1",
+        "question": "What dashboard metrics should Ops Labs track after launch?",
+        "expected_contains": ["time saved", "manual override rate", "false positive", "weekly trace review"],
+        "should_refuse": False,
+        "type": "metrics_extraction"
+    }
+]

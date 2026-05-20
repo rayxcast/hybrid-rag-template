@@ -1,12 +1,15 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
-from app.utils.logging import setup_logging, logging_middleware
-from app.api.endpoints import ingest, query
+from pathlib import Path
+
+import redis.asyncio as redis
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.api.endpoints import ingest, query, status as status_endpoint
 from app.config import app_settings
 from app.utils.cache import init_cache_index
-import redis.asyncio as redis
-from app.config import app_settings   # already imported, but for redis_client if needed
+from app.utils.logging import logging_middleware, setup_logging
 
 setup_logging()
 
@@ -28,5 +31,15 @@ app = FastAPI(
 
 app.middleware("http")(logging_middleware)
 
+static_dir = Path(__file__).resolve().parent / "static"
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 app.include_router(ingest.router)
 app.include_router(query.router)
+app.include_router(status_endpoint.router)
+
+
+@app.get("/", include_in_schema=False)
+async def demo_ui():
+    return FileResponse(static_dir / "index.html")

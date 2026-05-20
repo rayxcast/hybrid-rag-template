@@ -7,11 +7,15 @@ from app.rag.embedding_providers.dense.factory import get_dense_provider
 class AppSettings(BaseSettings):
     # API
     APP_NAME: str = "Hybrid RAG Template"
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: Literal["console", "json"] = "console"
 
     # RAG Settings
     RETRIEVAL_MODE: Literal["dense", "hybrid"] = "hybrid"
-    LLM_PROVIDER: Literal["openai", "anthropic", "ollama"] = "openai"
+    LLM_PROVIDER: Literal["openai", "anthropic", "ollama", "google"] = "openai"
     LLM_MODEL: str = "gpt-4.1-mini"
+    LLM_MAX_TOKENS: int = 2048
+    LLM_CONTEXT_WINDOW: int = 1_000_000
     USE_RERANKER: bool = True
     USE_CACHE: bool = True
 
@@ -19,7 +23,7 @@ class AppSettings(BaseSettings):
     VECTOR_STORE_PROVIDER: str = "qdrant"
 
     # Dense provider
-    DENSE_PROVIDER: str = "openai"
+    DENSE_PROVIDER: Literal["openai", "google"] = "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBED_BATCH_SIZE: int = 128
 
@@ -44,7 +48,7 @@ class AppSettings(BaseSettings):
     
     # Evals config
     EVAL_LLM_MODEL: str = "gpt-4.1-nano"
-    EVAL_LLM_PROVIDER: str = "openai"
+    EVAL_LLM_PROVIDER: Literal["openai", "anthropic", "ollama", "google"] = "openai"
 
     # Services
     QDRANT_URL: str = "http://qdrant:6333"
@@ -54,6 +58,7 @@ class AppSettings(BaseSettings):
     
     # Keys (from .env)
     OPENAI_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     LLAMA_CLOUD_API_KEY: str | None = None
 
@@ -61,12 +66,40 @@ class AppSettings(BaseSettings):
 
 app_settings = AppSettings()
 
-def configure_llm_settings():
-    """Applies global LlamaIndex configuration."""
-    Settings.llm = LiteLLM(
-        model=f"{app_settings.LLM_PROVIDER}/{app_settings.LLM_MODEL}",
-        api_key=app_settings.OPENAI_API_KEY if app_settings.LLM_PROVIDER == "openai" else (app_settings.ANTHROPIC_API_KEY if app_settings.LLM_PROVIDER == "anthropic" else app_settings.LLAMA_CLOUD_API_KEY),
+
+def get_provider_api_key(provider: str) -> str | None:
+    if provider == "openai":
+        return app_settings.OPENAI_API_KEY or None
+    if provider == "google":
+        return app_settings.GOOGLE_API_KEY or None
+    if provider == "anthropic":
+        return app_settings.ANTHROPIC_API_KEY or None
+    return app_settings.LLAMA_CLOUD_API_KEY or None
+
+
+def get_llm(provider: str | None = None, model: str | None = None):
+    provider = provider or app_settings.LLM_PROVIDER
+    model = model or app_settings.LLM_MODEL
+
+    if provider == "google":
+        from llama_index.llms.google_genai import GoogleGenAI
+
+        return GoogleGenAI(
+            model=model,
+            api_key=get_provider_api_key(provider),
+            temperature=1,
+            max_tokens=app_settings.LLM_MAX_TOKENS,
+            context_window=app_settings.LLM_CONTEXT_WINDOW,
+        )
+
+    return LiteLLM(
+        model=f"{provider}/{model}",
+        api_key=get_provider_api_key(provider),
         temperature=1
     )
- 
+
+
+def configure_llm_settings():
+    """Applies global LlamaIndex configuration."""
+    Settings.llm = get_llm()
     Settings.embed_model = get_dense_provider(app_settings.DENSE_PROVIDER).get_dense_model()
