@@ -122,6 +122,10 @@ The UI calls these API routes:
 - `POST /query/` with JSON shaped like `{ "query": "..." }`
 - `GET /status/` to check collection and index readiness
 
+By default, ingestion accepts uploaded `.pdf`, `.txt`, and `.md` files. Ingesting an
+arbitrary path from inside the container is disabled unless `ALLOW_PATH_INGEST=true`.
+This keeps the default API safer for teams adapting the template.
+
 Large PDFs can take time to ingest because embedding, sparse vector generation, and
 indexing are CPU and network intensive.
 
@@ -270,6 +274,10 @@ Common settings:
 - `REDIS_URL`
 - `RERANKER_URL`
 - `COLLECTION_NAME`
+- `ALLOW_PATH_INGEST`
+- `MAX_UPLOAD_BYTES`
+- `ALLOWED_UPLOAD_EXTENSIONS`
+- `QUERY_MAX_CHARS`
 
 Default Docker service URLs:
 
@@ -294,14 +302,17 @@ Already included:
 - Redis semantic cache
 - Qdrant persistence through named volumes
 - Reranker service isolation
+- Upload extension and size validation
+- Query length validation
+- Path ingestion disabled by default
+- Baseline tests and focused CI for safety-critical API surfaces
 
 Recommended before internet-facing production use:
 
 - Add authentication or API-key middleware.
 - Add rate limits and request size limits.
-- Restrict or remove arbitrary local path ingestion.
-- Add stricter file validation for uploads.
-- Add tracked unit/integration tests and CI.
+- Expand file validation beyond extension checks if handling untrusted uploads.
+- Expand unit/integration coverage around retrieval, generation, and eval flows.
 - Add metrics, dashboards, and deployment runbooks.
 - Publish versioned application images from CI.
 

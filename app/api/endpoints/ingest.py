@@ -1,20 +1,36 @@
-from fastapi import APIRouter, Form, File, UploadFile, HTTPException, Request
-from pathlib import Path
-import shutil
 import tempfile
+from pathlib import Path
+from typing import Annotated
+
 import structlog
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+
+from app.api.validation import (
+    require_path_ingest_enabled,
+    validate_upload_filename,
+    write_limited_upload,
+)
 from app.rag.ingestion import ingest_documents
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
 logger = structlog.get_logger()
 
+
 @router.post("/")
 async def ingest(
     request: Request,
-    path: str = Form(None, description="Local dir path inside container"),
-    file: UploadFile = File(None, description="Single file upload. Leave unselected and untick 'Send empty value' if using 'path' instead."),
-    recreate: bool = Form(False),
-):
+    path: Annotated[str | None, Form(description="Local dir path inside container")] = None,
+    file: Annotated[
+        UploadFile | None,
+        File(
+            description=(
+                "Single file upload. Leave unselected and untick 'Send empty value' "
+                "if using opt-in path ingestion."
+            )
+        ),
+    ] = None,
+    recreate: Annotated[bool, Form()] = False,
+) -> dict[str, object]:
     request_id = getattr(request.state, "request_id", "no-id")
     logger.info(
         "ingest_request_received",
@@ -25,11 +41,10 @@ async def ingest(
     )
 
     if file:
-        safe_filename = Path(file.filename or "upload").name
+        safe_filename = validate_upload_filename(file.filename)
         with tempfile.TemporaryDirectory() as tmp_dir:
             file_path = Path(tmp_dir) / safe_filename
-            with file_path.open("wb") as f:
-                shutil.copyfileobj(file.file, f)
+            await write_limited_upload(file, file_path)
             result = await ingest_documents(
                 str(Path(tmp_dir)),
                 recreate,
@@ -38,6 +53,7 @@ async def ingest(
                 source_type="upload",
             )
     elif path:
+        require_path_ingest_enabled()
         result = await ingest_documents(
             path,
             recreate,

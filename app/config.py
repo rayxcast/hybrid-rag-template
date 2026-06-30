@@ -10,6 +10,12 @@ class AppSettings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: Literal["console", "json"] = "console"
 
+    # API safety defaults
+    ALLOW_PATH_INGEST: bool = False
+    MAX_UPLOAD_BYTES: int = 25_000_000
+    ALLOWED_UPLOAD_EXTENSIONS: str = ".pdf,.txt,.md"
+    QUERY_MAX_CHARS: int = 4_000
+
     # RAG Settings
     RETRIEVAL_MODE: Literal["dense", "hybrid"] = "hybrid"
     LLM_PROVIDER: Literal["openai", "anthropic", "ollama", "google"] = "openai"

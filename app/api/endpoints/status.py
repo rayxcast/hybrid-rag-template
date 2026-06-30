@@ -7,7 +7,7 @@ router = APIRouter(tags=["status"])
 
 
 @router.get("/status/")
-async def status():
+async def status() -> dict[str, object]:
     client = QdrantClient(url=app_settings.QDRANT_URL)
     collection_exists = False
     point_count = 0
