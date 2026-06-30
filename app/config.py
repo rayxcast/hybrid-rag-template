@@ -15,6 +15,8 @@ class AppSettings(BaseSettings):
     MAX_UPLOAD_BYTES: int = 25_000_000
     ALLOWED_UPLOAD_EXTENSIONS: str = ".pdf,.txt,.md"
     QUERY_MAX_CHARS: int = 4_000
+    API_KEY_AUTH_ENABLED: bool = False
+    API_KEYS: str = ""
 
     # RAG Settings
     RETRIEVAL_MODE: Literal["dense", "hybrid"] = "hybrid"

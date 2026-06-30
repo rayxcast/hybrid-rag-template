@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
+from app.api.auth import require_api_key
 from app.api.validation import (
     require_path_ingest_enabled,
     validate_upload_filename,
@@ -12,7 +13,7 @@ from app.api.validation import (
 )
 from app.rag.ingestion import ingest_documents
 
-router = APIRouter(prefix="/ingest", tags=["ingest"])
+router = APIRouter(prefix="/ingest", tags=["ingest"], dependencies=[Depends(require_api_key)])
 logger = structlog.get_logger()
 
 

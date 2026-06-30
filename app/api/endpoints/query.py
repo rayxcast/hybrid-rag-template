@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Request
+from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
 
+from app.api.auth import require_api_key
 from app.api.validation import validate_query_text
 from app.rag.pipeline import HybridRAG
 
-router = APIRouter(prefix="/query", tags=["query"])
+router = APIRouter(prefix="/query", tags=["query"], dependencies=[Depends(require_api_key)])
 rag = HybridRAG()
 
 

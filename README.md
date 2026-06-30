@@ -278,6 +278,8 @@ Common settings:
 - `MAX_UPLOAD_BYTES`
 - `ALLOWED_UPLOAD_EXTENSIONS`
 - `QUERY_MAX_CHARS`
+- `API_KEY_AUTH_ENABLED`
+- `API_KEYS`
 
 Default Docker service URLs:
 
@@ -305,6 +307,7 @@ Already included:
 - Upload extension and size validation
 - Query length validation
 - Path ingestion disabled by default
+- Optional API-key authentication for `/ingest/` and `/query/`
 - Baseline tests and focused CI for safety-critical API surfaces
 
 Recommended before internet-facing production use:
@@ -315,6 +318,9 @@ Recommended before internet-facing production use:
 - Expand unit/integration coverage around retrieval, generation, and eval flows.
 - Add metrics, dashboards, and deployment runbooks.
 - Publish versioned application images from CI.
+
+See [docs/SECURITY.md](docs/SECURITY.md) for the current security model, protected
+endpoints, known non-goals, and deployment guidance.
 
 ## Project Structure
 

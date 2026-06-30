@@ -32,9 +32,11 @@ jobs:
       - name: Run focused Ruff checks
         run: >
           uv run ruff check
+          app/api/auth.py
           app/api/validation.py
           app/api/endpoints/ingest.py
           app/api/endpoints/query.py
           app/api/endpoints/status.py
+          tests/test_api_auth.py
           tests/test_api_validation.py
           tests/test_status_endpoint.py
