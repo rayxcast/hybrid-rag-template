@@ -45,3 +45,20 @@ jobs:
           app/rag/ingestion.py
           app/rag/pipeline.py
           app/utils/cache.py
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare local env file
+        run: cp .env.example .env
+
+      - name: Validate Compose config
+        run: docker compose config --no-interpolate
+
+      - name: Build application images
+        run: docker compose build app reranker_service

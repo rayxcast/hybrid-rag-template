@@ -2,12 +2,17 @@
 
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)](https://fastapi.tiangolo.com/)
+[![CI](https://github.com/rayxcast/hybrid-rag-template/actions/workflows/ci.yml/badge.svg)](https://github.com/rayxcast/hybrid-rag-template/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A production-oriented Retrieval-Augmented Generation template built with FastAPI, Qdrant,
 Redis semantic caching, LiteLLM, and a standalone FastEmbed reranker service.
 
 **Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals.
+
+This template focuses on production-shaped defaults: safe Docker networking, request
+validation, optional API-key protection, index-aware semantic caching, focused CI, and
+docs that explain what adopters still need to own.
 
 ## 🏗 Architecture Diagram
 
@@ -225,13 +230,25 @@ uv sync --directory services/reranker_service
 Run lint checks:
 
 ```bash
-uv run ruff check .
+make lint
 ```
 
 Run tests:
 
 ```bash
-uv run python -m pytest
+make test
+```
+
+Run the main local quality gate:
+
+```bash
+make check
+```
+
+Build Docker images:
+
+```bash
+make docker-build
 ```
 
 If local `uv` commands fail because `.venv` points to an old checkout path, recreate the
@@ -313,11 +330,13 @@ Already included:
 - Path ingestion disabled by default
 - Optional API-key authentication for `/ingest/` and `/query/`
 - Baseline tests and focused CI for safety-critical API surfaces
+- Docker Compose config and image build checks in CI
+- Architecture, security, testing, operations, and adoption docs
 
 Recommended before internet-facing production use:
 
-- Add authentication or API-key middleware.
-- Add rate limits and request size limits.
+- Integrate with your production identity and authorization system.
+- Add edge or middleware rate limits.
 - Expand file validation beyond extension checks if handling untrusted uploads.
 - Expand unit/integration coverage around retrieval, generation, and eval flows.
 - Add metrics, dashboards, and deployment runbooks.
@@ -326,6 +345,7 @@ Recommended before internet-facing production use:
 See [docs/SECURITY.md](docs/SECURITY.md) for the current security model, protected
 endpoints, known non-goals, and deployment guidance.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTING.md](docs/TESTING.md),
+[docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/ENGINEERING_CONTEXT.md](docs/ENGINEERING_CONTEXT.md),
 and [docs/ADOPTION.md](docs/ADOPTION.md) for implementation details and integration guidance.
 
 ## Project Structure
@@ -342,7 +362,8 @@ services/
   reranker_service/     Standalone FastAPI reranker service
 Dockerfile              Main API image
 docker-compose.yml      Multi-service runtime
-docs/                   Architecture, security, testing, and adoption notes
+docs/                   Architecture, security, testing, operations, and adoption notes
+Makefile                Common reviewer/developer commands
 pyproject.toml          Main app dependencies and tooling
 ```
 

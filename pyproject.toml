@@ -76,5 +76,7 @@ default-groups = []     # Don't install dev by default
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "PL", "UP", "ANN", "B"]
 ignore = []

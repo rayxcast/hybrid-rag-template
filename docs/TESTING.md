@@ -8,26 +8,19 @@ without requiring live model providers, Qdrant, or Redis for every test.
 Run tracked tests:
 
 ```bash
-uv run python -m pytest
+make test
 ```
 
 Run the focused lint gate used by CI:
 
 ```bash
-uv run ruff check \
-  app/api/auth.py \
-  app/api/validation.py \
-  app/api/endpoints/ingest.py \
-  app/api/endpoints/query.py \
-  app/api/endpoints/status.py \
-  app/rag/ingestion.py \
-  app/rag/pipeline.py \
-  app/utils/cache.py \
-  tests/test_api_auth.py \
-  tests/test_api_validation.py \
-  tests/test_cache_scope.py \
-  tests/test_ingestion_revision.py \
-  tests/test_status_endpoint.py
+make lint
+```
+
+Run the main local quality gate:
+
+```bash
+make check
 ```
 
 Validate Docker Compose:
@@ -39,7 +32,7 @@ docker compose config --no-interpolate
 Build the application images when Docker or OrbStack is running:
 
 ```bash
-docker compose build app reranker_service
+make docker-build
 ```
 
 ## Current Coverage
@@ -54,9 +47,10 @@ docker compose build app reranker_service
 
 ## CI Scope
 
-GitHub Actions runs tests and focused Ruff checks on the hardened safety surfaces. Full
-repository Ruff cleanup remains a separate normalization task because older modules still
-have style debt unrelated to the production-readiness slices.
+GitHub Actions runs tests, focused Ruff checks on the hardened safety surfaces, Compose
+config validation, and Docker image builds. Full repository Ruff cleanup remains a
+separate normalization task because older modules still have style debt unrelated to the
+production-readiness slices.
 
 ## Known Gaps
 
