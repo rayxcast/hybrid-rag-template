@@ -1,30 +1,37 @@
 import asyncio
+import time
 
+import structlog
+
+from app.config import app_settings
 from app.core.observability.timing import stage_timer
 from app.rag.generator import LLMGenerator
 from app.rag.reranker_providers.factory import get_reranker
 from app.rag.retriever import Retriever
 from app.rag.trace import summarize_nodes
 from app.rag.vectorstores.factory import get_vector_store_provider
-from app.utils.cache import get_semantic, set_semantic 
-from app.config import app_settings
-import structlog
-import time
+from app.utils.cache import get_current_cache_scope, get_semantic, set_semantic
 
 logger = structlog.get_logger()
 active_requests = 0
 active_requests_lock = asyncio.Lock()
 
 class HybridRAG:
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = app_settings
         self.retriever = Retriever()
         self.reranker = get_reranker()
         self.generator = LLMGenerator()
         self.vector_store_provider = get_vector_store_provider()
-    
-    async def query(self, query: str, trace_id: str, cache: bool = True, return_metadata: bool = False):
-        global active_requests
+
+    async def query(  # noqa: PLR0915
+        self,
+        query: str,
+        trace_id: str,
+        cache: bool = True,
+        return_metadata: bool = False,
+    ) -> dict[str, object]:
+        global active_requests  # noqa: PLW0603
 
         external_calls = {
             "embedding_calls": {
@@ -41,7 +48,10 @@ class HybridRAG:
         }
         warnings = [
             "Chunk-level citations only.",
-            "Reset/re-ingest when embedding provider, embedding model, or embedding dimension changes.",
+            (
+                "Reset/re-ingest when embedding provider, embedding model, "
+                "or embedding dimension changes."
+            ),
         ]
         trace = {
             "request_id": trace_id,
@@ -84,8 +94,9 @@ class HybridRAG:
         try:
             total_start = time.perf_counter()
             metrics = {}
-            
-            if self.vector_store_provider.supports_sparse() and app_settings.RETRIEVAL_MODE == "hybrid":
+
+            supports_sparse = self.vector_store_provider.supports_sparse()
+            if supports_sparse and app_settings.RETRIEVAL_MODE == "hybrid":
                 logger.info(
                     "retrieval_mode_selected",
                     trace_id=trace_id,
@@ -103,21 +114,18 @@ class HybridRAG:
                     warning=warning,
                 )
 
-            use_cache = False if not cache else self.config.USE_CACHE # override use_cache if cache==false else default self.config.USE_CACHE
+            use_cache = False if not cache else self.config.USE_CACHE
             cache_embedding = None
-
-            # if self.config.LLM_PROVIDER == "google" and use_cache:
-            #     warnings.append(
-            #         "Google free-tier request counts include semantic cache lookup, retrieval embedding, and LLM generation calls."
-            #     )
+            cache_scope = await get_current_cache_scope()
+            trace["cache_scope"] = cache_scope
 
             if use_cache:
-                # 1️⃣ Check cached
                 external_calls["embedding_calls"]["cache_lookup"] = 1
                 with stage_timer("check_cached", logger, trace_id, metrics):
                     cached, score, cache_embedding = await get_semantic(
                         query,
-                        threshold=0.92,
+                        cache_scope=cache_scope,
+                        threshold=self.config.CACHE_SIMILARITY_THRESHOLD,
                         return_embedding=True,
                     )
                 if cached:
@@ -129,6 +137,7 @@ class HybridRAG:
                             "enabled": True,
                             "hit": True,
                             "score": round(score, 4),
+                            "scope": cache_scope,
                         },
                         "timings": metrics,
                     })
@@ -139,18 +148,23 @@ class HybridRAG:
                         cache_score=round(score, 4),
                     )
                     return {**cached, "cached": True, "score": score, "trace": trace}
-            
-            # 2️⃣ Retrieval
+
             external_calls["embedding_calls"]["retrieval_query"] = 1
             with stage_timer("retrieval", logger, trace_id, metrics):
-                retrieved_nodes = await self.retriever.retrieve(query, self.vector_store_provider.supports_sparse())
+                retrieved_nodes = await self.retriever.retrieve(query, supports_sparse)
             retrieved_chunks = summarize_nodes(retrieved_nodes, stage="retrieved")
             if retrieved_nodes and not any(
                 "dense_score" in chunk or "sparse_score" in chunk for chunk in retrieved_chunks
             ):
-                warnings.append("Dense/SPLADE branch scores were not exposed by the vector store; showing fused scores where available.")
+                warnings.append(
+                    "Dense/SPLADE branch scores were not exposed by the vector store; "
+                    "showing fused scores where available."
+                )
             if not retrieved_nodes:
-                warnings.append("No chunks passed retrieval/cutoff; answer falls back to a document-grounded refusal.")
+                warnings.append(
+                    "No chunks passed retrieval/cutoff; answer falls back to a "
+                    "document-grounded refusal."
+                )
             logger.info(
                 "retrieved_nodes",
                 trace_id=trace_id,
@@ -158,13 +172,16 @@ class HybridRAG:
                 chunks=retrieved_chunks,
             )
 
-            # 3️⃣ Rerank
             reranked_nodes = []
             if retrieved_nodes and self.config.USE_RERANKER and self.reranker:
                 if self.config.RERANKER_PROVIDER == "remote":
                     external_calls["reranker_calls"]["remote"] = 1
                 with stage_timer("rerank", logger, trace_id, metrics):
-                    reranked_nodes = await self.reranker.rerank(query, retrieved_nodes, top_n=self.config.RERANK_TOP_N)
+                    reranked_nodes = await self.reranker.rerank(
+                        query,
+                        retrieved_nodes,
+                        top_n=self.config.RERANK_TOP_N,
+                    )
                 logger.info(
                     "reranked_nodes",
                     trace_id=trace_id,
@@ -173,26 +190,16 @@ class HybridRAG:
                     chunks=summarize_nodes(reranked_nodes, stage="reranked"),
                 )
 
-            # 4️⃣ Generation
             with stage_timer("generation", logger, trace_id, metrics):
-                final_nodes = reranked_nodes[:self.config.FINAL_CONTEXT_N] if self.config.USE_RERANKER and reranked_nodes else retrieved_nodes[:self.config.FINAL_CONTEXT_N]
+                final_nodes = (
+                    reranked_nodes[: self.config.FINAL_CONTEXT_N]
+                    if self.config.USE_RERANKER and reranked_nodes
+                    else retrieved_nodes[: self.config.FINAL_CONTEXT_N]
+                )
                 external_calls["llm_calls"]["generation"] = 1 if final_nodes else 0
                 response = await self.generator.generate(query, final_nodes)
-            
-            # 4️⃣ Generation Mock
-            # await asyncio.sleep(2)
-            # logger.info(
-            #     "stage_latency",
-            #     trace_id=trace_id,
-            #     stage="generation",
-            #     duration_seconds=2,
-            # )
-            # metrics["generation"] = 2
-            ##########################
 
             result = {
-                # "answer": "response[answer]",
-                # "sources": "response[sources]",
                 "answer": response["answer"],
                 "sources": response["sources"],
                 "mode": self.config.RETRIEVAL_MODE,
@@ -204,19 +211,17 @@ class HybridRAG:
                 result.update({
                     "retrieved_nodes": retrieved_nodes,
                     "reranked_nodes": reranked_nodes,
-                    "latency": metrics, 
+                    "latency": metrics,
                 })
-        
+
             if use_cache:
-                # 5️⃣ Caching
                 with stage_timer("cache_response", logger, trace_id):
-                    # logger.info("Caching query and answer with Redis...")
                     external_calls["embedding_calls"]["cache_write"] = 0 if cache_embedding else 1
                     await set_semantic(query, {
                         "answer": result["answer"],
                         "sources": result["sources"],
                         "mode": result["mode"],
-                    }, embedding=cache_embedding)
+                    }, cache_scope=cache_scope, embedding=cache_embedding)
 
             total_duration = time.perf_counter() - total_start
             metrics["total"] = round(total_duration, 4)
@@ -224,6 +229,7 @@ class HybridRAG:
                 "cache": {
                     "enabled": use_cache,
                     "hit": False,
+                    "scope": cache_scope,
                     "cache_write_reused_lookup_embedding": bool(use_cache and cache_embedding),
                 },
                 "timings": metrics,

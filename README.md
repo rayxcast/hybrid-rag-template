@@ -157,7 +157,9 @@ When switching embedding providers, models, or dimensions:
 - Re-ingest documents.
 - Clear Redis or set `USE_CACHE=false`.
 
-Embedding spaces are not interchangeable, and semantic cache vectors are provider-specific.
+Embedding spaces are not interchangeable. Semantic cache entries are scoped by collection,
+embedding provider, embedding model, embedding dimension, and index revision so answers
+from a previous document set are not reused after successful ingestion.
 
 ## Docker Notes
 
@@ -270,6 +272,8 @@ Common settings:
 - `EMBED_BATCH_SIZE`
 - `USE_RERANKER`
 - `USE_CACHE`
+- `CACHE_TTL_SECONDS`
+- `CACHE_SIMILARITY_THRESHOLD`
 - `QDRANT_URL`
 - `REDIS_URL`
 - `RERANKER_URL`
@@ -301,7 +305,7 @@ Already included:
 - Internal service networking by default
 - Pinned stateful service image tags
 - Structured request logging with request IDs
-- Redis semantic cache
+- Redis semantic cache scoped to the active index revision
 - Qdrant persistence through named volumes
 - Reranker service isolation
 - Upload extension and size validation
@@ -321,6 +325,8 @@ Recommended before internet-facing production use:
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the current security model, protected
 endpoints, known non-goals, and deployment guidance.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTING.md](docs/TESTING.md),
+and [docs/ADOPTION.md](docs/ADOPTION.md) for implementation details and integration guidance.
 
 ## Project Structure
 
@@ -336,6 +342,7 @@ services/
   reranker_service/     Standalone FastAPI reranker service
 Dockerfile              Main API image
 docker-compose.yml      Multi-service runtime
+docs/                   Architecture, security, testing, and adoption notes
 pyproject.toml          Main app dependencies and tooling
 ```
 
@@ -345,6 +352,10 @@ If the app starts but queries fail, check provider credentials and model names i
 
 If ingestion succeeds but retrieval looks wrong after changing embedding settings, recreate
 the collection, clear Redis, and re-ingest documents.
+
+If a repeated query unexpectedly skips cache after ingestion, check the returned trace:
+`trace.cache.scope.index_revision` should change after successful ingestion. That is
+intentional and prevents stale answers from previous document sets.
 
 If Docker builds are flaky on macOS, try OrbStack and rebuild:
 

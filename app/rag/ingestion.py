@@ -1,17 +1,37 @@
-from pathlib import Path
 import re
 import time
-from app.rag.hybrid_indexer import HybridIndexer
+from pathlib import Path
+from typing import Protocol
+
 import structlog
-from app.config import app_settings, configure_llm_settings
+from llama_index.core import Document, SimpleDirectoryReader
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.readers.file import PDFReader, PyMuPDFReader
-from llama_index.core import SimpleDirectoryReader
-from llama_index.core import Document
+
+from app.config import app_settings, configure_llm_settings
+from app.utils.cache import bump_index_revision
 
 logger = structlog.get_logger()
 
 configure_llm_settings()
+
+
+class StoreProviderProtocol(Protocol):
+    async def init_collection_if_needed(self) -> None: ...
+
+    async def delete_collection(self) -> dict[str, object]: ...
+
+
+class IndexerProtocol(Protocol):
+    store_provider: StoreProviderProtocol
+
+    def build_index(self, nodes: list[object]) -> object: ...
+
+
+def get_indexer() -> IndexerProtocol:
+    from app.rag.hybrid_indexer import HybridIndexer  # noqa: PLC0415
+
+    return HybridIndexer()
 
 # ------------------------
 # Text Cleaning
@@ -27,7 +47,7 @@ def clean_text(text: str) -> str:
 # Dynamic file Loader (Production Robust)
 # ------------------------
 
-def load_documents(input_path: str):
+def load_documents(input_path: str) -> list[Document]:
     input_path = Path(input_path)
     documents = []
 
@@ -92,7 +112,7 @@ async def ingest_documents(
     request_id: str | None = None,
     source_name: str | None = None,
     source_type: str | None = None,
-):
+) -> dict[str, object]:
     total_start = time.perf_counter()
     timings = {}
     trace = {
@@ -117,7 +137,10 @@ async def ingest_documents(
         },
         "retrieval_mode": app_settings.RETRIEVAL_MODE,
         "warnings": [
-            "Reset/re-ingest when embedding provider, embedding model, or embedding dimension changes.",
+            (
+                "Reset/re-ingest when embedding provider, embedding model, "
+                "or embedding dimension changes."
+            ),
         ],
     }
 
@@ -132,7 +155,7 @@ async def ingest_documents(
             embedding_provider=app_settings.DENSE_PROVIDER,
             retrieval_mode=app_settings.RETRIEVAL_MODE,
         )
-        indexer = HybridIndexer()
+        indexer = get_indexer()
 
         if recreate:
             start = time.perf_counter()
@@ -150,7 +173,7 @@ async def ingest_documents(
         start = time.perf_counter()
         await indexer.store_provider.init_collection_if_needed()
         timings["init_collection"] = round(time.perf_counter() - start, 4)
-        
+
         # ---- Load Documents
         start = time.perf_counter()
         documents = load_documents(input_path)
@@ -180,14 +203,19 @@ async def ingest_documents(
 
         # ---- Indexing (Dense + Sparse + Insert)
         start = time.perf_counter()
-        index = indexer.build_index(nodes)
+        indexer.build_index(nodes)
         timings["indexing"] = round(time.perf_counter() - start, 4)
+
+        start = time.perf_counter()
+        index_revision = await bump_index_revision()
+        timings["bump_index_revision"] = round(time.perf_counter() - start, 4)
         timings["total"] = round(time.perf_counter() - total_start, 4)
         logger.info(
             "index_built",
             request_id=request_id,
             duration_seconds=timings["indexing"],
             total_duration_seconds=timings["total"],
+            index_revision=index_revision,
         )
 
         return {
@@ -199,6 +227,7 @@ async def ingest_documents(
                 "status": "success",
                 "document_count": len(documents),
                 "chunk_count": len(nodes),
+                "index_revision": index_revision,
                 "timings": timings,
             },
         }

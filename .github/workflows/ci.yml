@@ -39,4 +39,9 @@ jobs:
           app/api/endpoints/status.py
           tests/test_api_auth.py
           tests/test_api_validation.py
+          tests/test_cache_scope.py
+          tests/test_ingestion_revision.py
           tests/test_status_endpoint.py
+          app/rag/ingestion.py
+          app/rag/pipeline.py
+          app/utils/cache.py

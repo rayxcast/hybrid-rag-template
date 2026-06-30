@@ -1,146 +1,245 @@
-"""Real Redis semantic cache with vector similarity."""
-import numpy as np  # Add this import at top of cache.py
-from llama_index.core import Settings
-from app.config import app_settings, configure_llm_settings
+"""Redis semantic cache scoped to the current indexed corpus."""
+
+import json
+import re
+import uuid
+from typing import Any
+
+import numpy as np
 import redis.asyncio as redis
 import structlog
-import json
-from typing import Optional, Tuple
+from llama_index.core import Settings
 from redisvl.index import AsyncSearchIndex
-from redisvl.schema import IndexSchema
 from redisvl.query import VectorQuery
-# from redisvl.query.filter import Tag  # if you ever add metadata filters
-import uuid
-import re
+from redisvl.schema import IndexSchema
+
+from app.config import app_settings, configure_llm_settings
 
 logger = structlog.get_logger()
+MAX_COSINE_DISTANCE = 2.0
 
 redis_client = redis.from_url(app_settings.REDIS_URL, decode_responses=True)
 configure_llm_settings()
 
-# Normalize query: lowercase, strip punctuation/spaces (cheap boost to hit rate)
+SCHEMA = IndexSchema.from_dict(
+    {
+        "index": {"name": "semantic_cache", "prefix": "cache:"},
+        "fields": [
+            {"name": "query_text", "type": "text"},
+            {"name": "answer", "type": "text"},
+            {"name": "collection_name", "type": "text"},
+            {"name": "embedding_provider", "type": "text"},
+            {"name": "embedding_model", "type": "text"},
+            {"name": "embedding_dim", "type": "text"},
+            {"name": "index_revision", "type": "text"},
+            {
+                "name": "embedding",
+                "type": "vector",
+                "attrs": {
+                    "dims": app_settings.EMBEDDING_DIM,
+                    "distance_metric": "cosine",
+                    "algorithm": "hnsw",
+                    "datatype": "float32",
+                },
+            },
+        ],
+    }
+)
+
+
 def normalize_query(query: str) -> str:
     query = query.lower().strip()
-    query = re.sub(r'[?.!,;:"]+', '', query)  # Remove common punctuation
-    query = re.sub(r'\s+', ' ', query)  # Collapse spaces
-    return query
+    query = re.sub(r'[?.!,;:"]+', "", query)
+    return re.sub(r"\s+", " ", query)
 
-# Define schema (dims match your embedding model, e.g., 1536 for OpenAI text-embedding-3-small)
-SCHEMA = IndexSchema.from_dict({
-    "index": {"name": "semantic_cache", "prefix": "cache:"},
-    "fields": [
-        {"name": "query_text", "type": "text"},
-        {"name": "answer", "type": "text"},
-        {"name": "embedding", "type": "vector", "attrs": {
-            "dims": app_settings.EMBEDDING_DIM,
-            "distance_metric": "cosine",
-            "algorithm": "hnsw",
-            "datatype": "float32"
-        }}
-    ]
-})
+
+def index_revision_key(collection_name: str | None = None) -> str:
+    collection = collection_name or app_settings.COLLECTION_NAME
+    return f"index_revision:{collection}"
+
+
+def build_cache_scope(index_revision: str | int) -> dict[str, str]:
+    return {
+        "collection_name": app_settings.COLLECTION_NAME,
+        "embedding_provider": app_settings.DENSE_PROVIDER,
+        "embedding_model": app_settings.EMBEDDING_MODEL,
+        "embedding_dim": str(app_settings.EMBEDDING_DIM),
+        "index_revision": str(index_revision),
+    }
+
+
+def cache_scope_matches(cached_scope: dict[str, Any] | None, current_scope: dict[str, str]) -> bool:
+    if not cached_scope:
+        return False
+    return all(str(cached_scope.get(key)) == value for key, value in current_scope.items())
+
+
+async def get_index_revision(collection_name: str | None = None) -> str:
+    key = index_revision_key(collection_name)
+    await redis_client.setnx(key, "0")
+    revision = await redis_client.get(key)
+    return str(revision or "0")
+
+
+async def bump_index_revision(collection_name: str | None = None) -> str:
+    key = index_revision_key(collection_name)
+    revision = await redis_client.incr(key)
+    return str(revision)
+
+
+async def get_current_cache_scope() -> dict[str, str]:
+    revision = await get_index_revision()
+    return build_cache_scope(revision)
+
 
 async def get_connected_index() -> AsyncSearchIndex:
-    """Create index and await client connection."""
     index = AsyncSearchIndex(SCHEMA)
-    await index.set_client(redis_client)  # ← This is async → MUST await
+    await index.set_client(redis_client)
     return index
 
-# Create index (run once at app startup)
-async def init_cache_index():
+
+async def init_cache_index() -> None:
     try:
+        await get_index_revision()
         index = await get_connected_index()
-        await index.create(overwrite=False)  # Idempotent
+        await index.create(overwrite=False)
         logger.info("Semantic cache index initialized or already exists")
-    except Exception as e:
-        logger.error("Failed to initialize semantic cache index", error=str(e))
+    except Exception as error:
+        logger.error("Failed to initialize semantic cache index", error=str(error))
         raise
+
+
+def _payload_from_cache_record(
+    record: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    try:
+        decoded = json.loads(record["answer"])
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return None, None
+
+    if not isinstance(decoded, dict):
+        return None, None
+
+    payload = decoded.get("payload")
+    scope = decoded.get("cache_scope")
+    if not isinstance(payload, dict) or not isinstance(scope, dict):
+        return None, None
+
+    return payload, scope
+
 
 async def get_semantic(
     query: str,
-    threshold: float = 0.92,
+    cache_scope: dict[str, str],
+    threshold: float | None = None,
     return_embedding: bool = False,
-) -> Optional[Tuple[dict, float]] | tuple[dict | None, float, list[float] | None]:
-    """Semantic cache lookup with vector similarity."""
+) -> tuple[dict[str, Any] | None, float, list[float] | None] | tuple[dict[str, Any] | None, float]:
+    """Look up a semantic cache entry for the active index scope."""
     try:
+        score_threshold = (
+            threshold if threshold is not None else app_settings.CACHE_SIMILARITY_THRESHOLD
+        )
         norm_query = normalize_query(query)
         q_emb = await Settings.embed_model.aget_text_embedding(norm_query)
-        
-        # Create VectorQuery
+
         vector_query = VectorQuery(
             vector=q_emb,
             vector_field_name="embedding",
-            return_fields=["answer"],
-            num_results=1,
-            return_score=True,          # Ensures vector_distance is returned
-            # No distance_metric here – it's in schema
+            return_fields=[
+                "answer",
+                "collection_name",
+                "embedding_provider",
+                "embedding_model",
+                "embedding_dim",
+                "index_revision",
+            ],
+            num_results=10,
+            return_score=True,
         )
-        
+
         index = await get_connected_index()
         results = await index.query(vector_query)
-        
-        # logger.info("Raw cache results", results=results)  # ← Keep temporarily for debug
-        
-        if results and len(results) > 0:
-            top_result = results[0]  # dict
-            # Get distance (string → float)
-            distance_str = top_result.get("vector_distance")
+
+        for result in results or []:
+            distance_str = result.get("vector_distance")
             if distance_str is None:
-                logger.warning("No vector_distance in result", result=top_result)
-                return (None, 0.0, q_emb) if return_embedding else (None, 0.0)
-            
+                logger.warning("No vector_distance in semantic cache result", result=result)
+                continue
+
             distance = float(distance_str)
-            
-            # Cosine distance → similarity (0–1, higher better)
-            similarity = 1 - (distance / 2) if distance <= 2 else 0.0
-            
-            if similarity >= threshold:
+            similarity = (
+                1 - (distance / MAX_COSINE_DISTANCE)
+                if distance <= MAX_COSINE_DISTANCE
+                else 0.0
+            )
+            if similarity < score_threshold:
+                continue
+
+            cached_payload, cached_scope = _payload_from_cache_record(result)
+            if not cache_scope_matches(cached_scope, cache_scope):
                 logger.info(
-                    "Semantic cache hit",
+                    "Semantic cache candidate rejected due to index scope mismatch",
                     query=query[:50],
-                    distance=distance,
-                    similarity=similarity
+                    similarity=similarity,
+                    current_scope=cache_scope,
+                    cached_scope=cached_scope,
                 )
-                cached_data = json.loads(top_result["answer"])
-                return (
-                    (cached_data, similarity, q_emb)
-                    if return_embedding
-                    else (cached_data, similarity)
-                )
-            
-            else:
-                logger.debug("Cache miss - similarity too low", similarity=similarity)
-        
-        logger.debug("Semantic cache miss - no results")
-        return (None, 0.0, q_emb) if return_embedding else (None, 0.0)
-    
-    except Exception as e:
-        logger.error("Semantic cache get failed", error=str(e), exc_info=True)
-        return (None, 0.0, None) if return_embedding else (None, 0.0)
+                continue
+
+            logger.info(
+                "Semantic cache hit",
+                query=query[:50],
+                distance=distance,
+                similarity=similarity,
+                cache_scope=cache_scope,
+            )
+            if return_embedding:
+                return cached_payload, similarity, q_emb
+            return cached_payload, similarity
+
+        logger.debug("Semantic cache miss")
+        if return_embedding:
+            return None, 0.0, q_emb
+        return None, 0.0
+
+    except Exception as error:
+        logger.error("Semantic cache get failed", error=str(error), exc_info=True)
+        if return_embedding:
+            return None, 0.0, None
+        return None, 0.0
+
 
 async def set_semantic(
     query: str,
     answer: object,
-    ttl: int = 3600,
+    cache_scope: dict[str, str],
+    ttl: int | None = None,
     embedding: list[float] | None = None,
-):
-    """Store with vector embedding for similarity search."""
+) -> None:
+    """Store a semantic cache entry for the active index scope."""
     try:
         norm_query = normalize_query(query)
         emb_list = embedding or await Settings.embed_model.aget_text_embedding(norm_query)
-        
-        # Convert list[float] → bytes (required for Redis vector field)
         emb_bytes = np.array(emb_list, dtype=np.float32).tobytes()
-        
+
+        payload = {
+            "cache_scope": cache_scope,
+            "payload": answer,
+        }
         key = f"cache:{uuid.uuid4().hex[:12]}"
         index = await get_connected_index()
-        await index.load([{
-            "id": key,
-            "query_text": norm_query,
-            "answer": json.dumps(answer),  # still JSON string
-            "embedding": emb_bytes       # ← now bytes, not list
-        }])
-        await redis_client.expire(key, ttl)
-        logger.info("Semantic cache set", query=query[:50] + "...")
-    except Exception as e:
-        logger.error("Semantic cache set failed", error=str(e))
+        await index.load(
+            [
+                {
+                    "id": key,
+                    "query_text": norm_query,
+                    "answer": json.dumps(payload),
+                    "embedding": emb_bytes,
+                    **cache_scope,
+                }
+            ]
+        )
+        await redis_client.expire(key, ttl or app_settings.CACHE_TTL_SECONDS)
+        logger.info("Semantic cache set", query=query[:50], cache_scope=cache_scope)
+    except Exception as error:
+        logger.error("Semantic cache set failed", error=str(error))

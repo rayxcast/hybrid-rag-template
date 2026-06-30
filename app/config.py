@@ -26,6 +26,8 @@ class AppSettings(BaseSettings):
     LLM_CONTEXT_WINDOW: int = 1_000_000
     USE_RERANKER: bool = True
     USE_CACHE: bool = True
+    CACHE_TTL_SECONDS: int = 3600
+    CACHE_SIMILARITY_THRESHOLD: float = 0.92
 
     # Vector storage provider
     VECTOR_STORE_PROVIDER: str = "qdrant"
