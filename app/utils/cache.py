@@ -32,6 +32,7 @@ SCHEMA = IndexSchema.from_dict(
             {"name": "embedding_model", "type": "text"},
             {"name": "embedding_dim", "type": "text"},
             {"name": "index_revision", "type": "text"},
+            {"name": "metadata_filter_scope", "type": "text"},
             {
                 "name": "embedding",
                 "type": "vector",
@@ -58,13 +59,17 @@ def index_revision_key(collection_name: str | None = None) -> str:
     return f"index_revision:{collection}"
 
 
-def build_cache_scope(index_revision: str | int) -> dict[str, str]:
+def build_cache_scope(
+    index_revision: str | int,
+    metadata_filter_scope: str | None = None,
+) -> dict[str, str]:
     return {
         "collection_name": app_settings.COLLECTION_NAME,
         "embedding_provider": app_settings.DENSE_PROVIDER,
         "embedding_model": app_settings.EMBEDDING_MODEL,
         "embedding_dim": str(app_settings.EMBEDDING_DIM),
         "index_revision": str(index_revision),
+        "metadata_filter_scope": metadata_filter_scope or "{}",
     }
 
 
@@ -87,9 +92,9 @@ async def bump_index_revision(collection_name: str | None = None) -> str:
     return str(revision)
 
 
-async def get_current_cache_scope() -> dict[str, str]:
+async def get_current_cache_scope(metadata_filter_scope: str | None = None) -> dict[str, str]:
     revision = await get_index_revision()
-    return build_cache_scope(revision)
+    return build_cache_scope(revision, metadata_filter_scope=metadata_filter_scope)
 
 
 async def get_connected_index() -> AsyncSearchIndex:
@@ -152,6 +157,7 @@ async def get_semantic(
                 "embedding_model",
                 "embedding_dim",
                 "index_revision",
+                "metadata_filter_scope",
             ],
             num_results=10,
             return_score=True,

@@ -6,6 +6,7 @@ import structlog
 from app.config import app_settings
 from app.core.observability.timing import stage_timer
 from app.rag.generator import LLMGenerator
+from app.rag.metadata_filters import MetadataFilterInput, metadata_filter_scope
 from app.rag.reranker_providers.factory import get_reranker
 from app.rag.retriever import Retriever
 from app.rag.trace import summarize_nodes
@@ -30,6 +31,7 @@ class HybridRAG:
         trace_id: str,
         cache: bool = True,
         return_metadata: bool = False,
+        metadata_filters: MetadataFilterInput | None = None,
     ) -> dict[str, object]:
         global active_requests  # noqa: PLW0603
 
@@ -53,6 +55,7 @@ class HybridRAG:
                 "or embedding dimension changes."
             ),
         ]
+        normalized_filter_scope = metadata_filter_scope(metadata_filters)
         trace = {
             "request_id": trace_id,
             "operation": "query",
@@ -74,6 +77,8 @@ class HybridRAG:
                 "similarity_cutoff": self.config.SIMILARITY_CUTOFF,
                 "rerank_top_n": self.config.RERANK_TOP_N,
                 "final_context_n": self.config.FINAL_CONTEXT_N,
+                "metadata_filter_scope": normalized_filter_scope,
+                "metadata_filter_keys": sorted((metadata_filters or {}).keys()),
             },
             "cache": {
                 "enabled": False if not cache else self.config.USE_CACHE,
@@ -116,7 +121,9 @@ class HybridRAG:
 
             use_cache = False if not cache else self.config.USE_CACHE
             cache_embedding = None
-            cache_scope = await get_current_cache_scope()
+            cache_scope = await get_current_cache_scope(
+                metadata_filter_scope=normalized_filter_scope,
+            )
             trace["cache_scope"] = cache_scope
 
             if use_cache:
@@ -151,7 +158,11 @@ class HybridRAG:
 
             external_calls["embedding_calls"]["retrieval_query"] = 1
             with stage_timer("retrieval", logger, trace_id, metrics):
-                retrieved_nodes = await self.retriever.retrieve(query, supports_sparse)
+                retrieved_nodes = await self.retriever.retrieve(
+                    query,
+                    supports_sparse,
+                    metadata_filters=metadata_filters,
+                )
             retrieved_chunks = summarize_nodes(retrieved_nodes, stage="retrieved")
             if retrieved_nodes and not any(
                 "dense_score" in chunk or "sparse_score" in chunk for chunk in retrieved_chunks

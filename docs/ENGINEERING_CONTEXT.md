@@ -22,10 +22,12 @@ to be a complete SaaS product or a turnkey internet-facing deployment.
 - Only the API port is published by default in Docker Compose.
 - Qdrant, Redis, and the reranker are internal services by default.
 - App and reranker containers run as non-root users.
+- The app exposes `/healthz` for liveness and `/readyz` for dependency readiness.
 - Upload ingestion validates filename, extension, non-empty content, and size.
 - Container path ingestion is disabled unless `ALLOW_PATH_INGEST=true`.
 - Optional API-key auth protects `/ingest/` and `/query/` when enabled.
-- Semantic cache entries are scoped to collection, embedding config, and index revision.
+- Semantic cache entries are scoped to collection, embedding config, index revision, and
+  metadata filter scope.
 
 ## Cache Correctness
 
@@ -47,6 +49,7 @@ The CI gate runs:
 - focused Ruff checks on hardened production-template surfaces
 - `docker compose config --no-interpolate`
 - `docker compose build app reranker_service`
+- `make smoke` for Docker-backed health/readiness validation
 
 Full-repo Ruff is intentionally not the gate yet. Older modules still have style debt
 that should be normalized in a dedicated cleanup slice rather than mixed into feature work.
@@ -57,4 +60,4 @@ that should be normalized in a dedicated cleanup slice rather than mixed into fe
 - Upload extension checks are not malware scanning or MIME verification.
 - Multi-tenant document authorization is not implemented.
 - Rate limiting should be added at a proxy, gateway, or middleware layer.
-- Live Qdrant/Redis integration tests are not yet part of CI.
+- Provider-backed ingest/query integration tests are not yet part of CI.

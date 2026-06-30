@@ -17,6 +17,12 @@ Run the focused lint gate used by CI:
 make lint
 ```
 
+Show full-repo Ruff issues without making them the CI gate:
+
+```bash
+make lint-all
+```
+
 Run the main local quality gate:
 
 ```bash
@@ -35,6 +41,16 @@ Build the application images when Docker or OrbStack is running:
 make docker-build
 ```
 
+Run the Docker-backed smoke test:
+
+```bash
+make smoke
+```
+
+The smoke test starts Docker Compose, waits for `/readyz`, verifies `/healthz`,
+`/readyz`, and `/status/`, then stops the stack. It does not perform provider-backed
+ingest/query calls.
+
 ## Current Coverage
 
 - API-key auth parsing and failure modes.
@@ -42,25 +58,27 @@ make docker-build
 - Query validation.
 - Path ingestion disabled-by-default behavior.
 - Status response shape with Qdrant mocked.
+- Health and readiness response behavior with dependencies mocked.
 - Cache scope acceptance and rejection.
+- Metadata-filter validation, conversion, and cache-scope isolation.
 - Ingestion revision bump after success and no bump after indexing failure.
 
 ## CI Scope
 
 GitHub Actions runs tests, focused Ruff checks on the hardened safety surfaces, Compose
-config validation, and Docker image builds. Full repository Ruff cleanup remains a
-separate normalization task because older modules still have style debt unrelated to the
-production-readiness slices.
+config validation, Docker image builds, and a Docker-backed health/readiness smoke test.
+Full repository Ruff cleanup remains a separate normalization task because older modules
+still have style debt unrelated to the production-readiness slices. `make lint-all`
+exists to make that debt visible during local review.
 
 ## Known Gaps
 
-- No live Qdrant/Redis integration test yet.
 - No end-to-end ingestion/query/cache invalidation smoke test in CI.
 - No provider-backed LLM or embedding tests in CI.
 - Evaluation quality is not yet enforced as a CI gate.
 
 Recommended next testing improvements:
 
-- Add a Docker-backed smoke test for ingest, query, re-ingest, and cache miss after revision bump.
 - Add small fake-provider tests around retrieval and generation orchestration.
+- Add a provider-free fake-model ingest/query smoke test for cache invalidation.
 - Add a cheap deterministic eval fixture for pull requests.

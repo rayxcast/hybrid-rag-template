@@ -20,6 +20,8 @@ Open:
 
 - Demo UI: http://localhost:8000/
 - API docs: http://localhost:8000/docs
+- Liveness: http://localhost:8000/healthz
+- Readiness: http://localhost:8000/readyz
 - Status: http://localhost:8000/status/
 
 First startup may fetch model files before the API accepts traffic.
@@ -43,12 +45,19 @@ or intentionally resetting local state.
 
 ## Healthchecks
 
-- App healthcheck calls `GET /status/`.
+- App healthcheck calls `GET /readyz`.
 - Qdrant healthcheck calls `/readyz`.
 - Redis healthcheck calls `redis-cli ping`.
 - Reranker healthcheck calls `GET /health`.
 
+`/healthz` is a cheap process liveness check. `/readyz` checks app dependencies.
 `/status/` reports collection existence, point count, retrieval mode, and Qdrant errors.
+
+Run the Docker-backed health/readiness smoke test with:
+
+```bash
+make smoke
+```
 
 ## Logs
 

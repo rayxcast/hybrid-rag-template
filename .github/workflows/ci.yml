@@ -30,21 +30,7 @@ jobs:
         run: uv run python -m pytest
 
       - name: Run focused Ruff checks
-        run: >
-          uv run ruff check
-          app/api/auth.py
-          app/api/validation.py
-          app/api/endpoints/ingest.py
-          app/api/endpoints/query.py
-          app/api/endpoints/status.py
-          tests/test_api_auth.py
-          tests/test_api_validation.py
-          tests/test_cache_scope.py
-          tests/test_ingestion_revision.py
-          tests/test_status_endpoint.py
-          app/rag/ingestion.py
-          app/rag/pipeline.py
-          app/utils/cache.py
+        run: make lint
 
   docker:
     name: Docker build
@@ -62,3 +48,6 @@ jobs:
 
       - name: Build application images
         run: docker compose build app reranker_service
+
+      - name: Run Docker smoke test
+        run: make smoke

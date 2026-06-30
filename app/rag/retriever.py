@@ -8,6 +8,8 @@ from llama_index.core.postprocessor import SimilarityPostprocessor
 import yaml
 import structlog
 
+from app.rag.metadata_filters import MetadataFilterInput, to_llama_metadata_filters
+
 logger = structlog.get_logger()
 
 # Load prompts
@@ -21,7 +23,12 @@ class Retriever:
         self.vector_store_provider = get_vector_store_provider()
         self.config = app_settings
 
-    async def retrieve(self, query: str, support_hybrid: bool = True):
+    async def retrieve(
+        self,
+        query: str,
+        support_hybrid: bool = True,
+        metadata_filters: MetadataFilterInput | None = None,
+    ):
         try:
             index = VectorStoreIndex.from_vector_store(self.vector_store_provider.get_vector_store())
             mode = "hybrid" if self.config.RETRIEVAL_MODE == "hybrid" and support_hybrid else "default"
@@ -30,7 +37,8 @@ class Retriever:
             retriever = index.as_retriever(
                 similarity_top_k=self.config.SIMILARITY_TOP_K,
                 node_postprocessors=node_postprocessors,
-                vector_store_query_mode=mode
+                vector_store_query_mode=mode,
+                filters=to_llama_metadata_filters(metadata_filters),
             )
             
             retrieved_nodes = await retriever.aretrieve(query)

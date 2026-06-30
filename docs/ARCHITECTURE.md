@@ -18,13 +18,14 @@ FastAPI app is the only service exposed to the host.
 ## Query Flow
 
 1. Validate the incoming query and optional API key.
-2. Load the current cache scope from Redis.
-3. Look up semantically similar cached answers for the same cache scope.
-4. Retrieve candidate chunks from Qdrant when there is no valid cache hit.
-5. Rerank candidates when reranking is enabled.
-6. Generate a grounded answer from the final context chunks.
-7. Store the answer in Redis with the current cache scope and TTL.
-8. Return answer, sources, cache status, timings, and trace metadata.
+2. Validate optional equality-only retrieval metadata filters.
+3. Load the current cache scope from Redis, including normalized filter scope.
+4. Look up semantically similar cached answers for the same cache scope.
+5. Retrieve candidate chunks from Qdrant when there is no valid cache hit.
+6. Rerank candidates when reranking is enabled.
+7. Generate a grounded answer from the final context chunks.
+8. Store the answer in Redis with the current cache scope and TTL.
+9. Return answer, sources, cache status, timings, and trace metadata.
 
 ## Ingestion Flow
 
@@ -49,6 +50,7 @@ for the corpus that produced them. This template scopes each answer cache entry 
 - embedding model
 - embedding dimension
 - index revision
+- metadata filter scope
 
 The index revision is stored in Redis as:
 
@@ -59,9 +61,23 @@ index_revision:{COLLECTION_NAME}
 It defaults to `0` and increments after successful ingestion. Cache TTL is still used
 to limit Redis growth, but index scope is the correctness boundary.
 
+Metadata filters are equality-only in this template and are intended as an extension
+point for adopters. They must be paired with application-level authorization before
+serving multi-tenant traffic.
+
+## Health and Readiness
+
+- `/healthz` is a cheap liveness endpoint. It does not call downstream services.
+- `/readyz` checks Qdrant, Redis, and the remote reranker when enabled.
+- `/status/` returns human-oriented index details such as collection existence and point
+  count.
+
+Readiness means required dependencies are reachable. A brand-new empty collection is not
+treated as an unhealthy deployment.
+
 ## Extension Points
 
-- Add tenant and document authorization filters in retrieval before serving multi-tenant traffic.
+- Add tenant and document authorization filters around the existing retrieval filter hook.
 - Replace Qdrant by implementing the vector store provider interface.
 - Replace embedding or reranking providers behind the existing provider factories.
 - Add production auth, rate limits, and observability in the API layer or upstream gateway.

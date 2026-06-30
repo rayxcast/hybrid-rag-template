@@ -92,6 +92,8 @@ Open:
 
 - Demo UI: http://localhost:8000/
 - Swagger UI: http://localhost:8000/docs
+- Liveness endpoint: http://localhost:8000/healthz
+- Readiness endpoint: http://localhost:8000/readyz
 - Status endpoint: http://localhost:8000/status/
 
 Follow logs:
@@ -126,6 +128,22 @@ The UI calls these API routes:
 - `POST /ingest/` with multipart form data containing `file` and `recreate`
 - `POST /query/` with JSON shaped like `{ "query": "..." }`
 - `GET /status/` to check collection and index readiness
+
+`POST /query/` also accepts optional equality-only metadata filters:
+
+```json
+{
+  "query": "Summarize the onboarding policy.",
+  "metadata_filters": {
+    "tenant_id": "acme",
+    "document_id": "handbook"
+  }
+}
+```
+
+Filter values must be string, number, boolean, or null scalars. The template includes
+this as a retrieval extension point; it is not a replacement for application-level
+authorization.
 
 By default, ingestion accepts uploaded `.pdf`, `.txt`, and `.md` files. Ingesting an
 arbitrary path from inside the container is disabled unless `ALLOW_PATH_INGEST=true`.
@@ -175,6 +193,7 @@ The default Compose file is production-style rather than hot-reload development 
 - Qdrant and Redis use named volumes for persistence.
 - The app and reranker images run as a non-root user.
 - App and service containers include healthchecks.
+- The app exposes `/healthz` for process liveness and `/readyz` for dependency readiness.
 
 To inspect Qdrant or Redis from the host during local debugging, temporarily add port
 mappings or use a Compose override file. For example:
@@ -233,6 +252,12 @@ Run lint checks:
 make lint
 ```
 
+Show full-repo Ruff debt without making it the main gate:
+
+```bash
+make lint-all
+```
+
 Run tests:
 
 ```bash
@@ -250,6 +275,16 @@ Build Docker images:
 ```bash
 make docker-build
 ```
+
+Run the Docker-backed smoke test:
+
+```bash
+make smoke
+```
+
+The smoke test starts the Compose stack, waits for `/readyz`, verifies `/healthz`,
+`/readyz`, and `/status/`, then stops the stack. It does not call model providers, so it
+can run with `.env.example` values.
 
 If local `uv` commands fail because `.venv` points to an old checkout path, recreate the
 environment:
@@ -323,6 +358,7 @@ Already included:
 - Pinned stateful service image tags
 - Structured request logging with request IDs
 - Redis semantic cache scoped to the active index revision
+- Metadata-filter-aware cache scoping for filtered retrieval
 - Qdrant persistence through named volumes
 - Reranker service isolation
 - Upload extension and size validation
@@ -331,6 +367,7 @@ Already included:
 - Optional API-key authentication for `/ingest/` and `/query/`
 - Baseline tests and focused CI for safety-critical API surfaces
 - Docker Compose config and image build checks in CI
+- Docker-backed smoke test for health/readiness endpoints
 - Architecture, security, testing, operations, and adoption docs
 
 Recommended before internet-facing production use:
@@ -346,7 +383,8 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the current security model, protect
 endpoints, known non-goals, and deployment guidance.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTING.md](docs/TESTING.md),
 [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/ENGINEERING_CONTEXT.md](docs/ENGINEERING_CONTEXT.md),
-and [docs/ADOPTION.md](docs/ADOPTION.md) for implementation details and integration guidance.
+[docs/ADOPTION.md](docs/ADOPTION.md), [CONTRIBUTING.md](CONTRIBUTING.md), and
+[CHANGELOG.md](CHANGELOG.md) for implementation details and integration guidance.
 
 ## Project Structure
 
