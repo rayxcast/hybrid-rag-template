@@ -25,15 +25,16 @@ async def ingest(
     )
 
     if file:
+        safe_filename = Path(file.filename or "upload").name
         with tempfile.TemporaryDirectory() as tmp_dir:
-            file_path = Path(tmp_dir) / file.filename
+            file_path = Path(tmp_dir) / safe_filename
             with file_path.open("wb") as f:
                 shutil.copyfileobj(file.file, f)
             result = await ingest_documents(
                 str(Path(tmp_dir)),
                 recreate,
                 request_id=request_id,
-                source_name=file.filename,
+                source_name=safe_filename,
                 source_type="upload",
             )
     elif path:

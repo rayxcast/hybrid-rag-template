@@ -1,10 +1,9 @@
 services:
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.16.2
     container_name: qdrant
-    ports:
-      - "6333:6333"
-      # - "6334:6334"  # dashboard - uncomment only if needed
+    expose:
+      - "6333"
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 && echo -e 'GET /readyz HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1.1 200' <&3 || exit 1"]
       interval: 5s
@@ -17,10 +16,10 @@ services:
     # networks: [rag-net]
 
   redis:
-    image: redis/redis-stack:latest
+    image: redis/redis-stack:7.4.0-v8
     container_name: redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,8 +34,8 @@ services:
   reranker_service:
     build: ./services/reranker_service
     container_name: reranker
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8001 && echo -e 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1.1 200' <&3 || exit 1"]
       interval: 10s
@@ -60,9 +59,13 @@ services:
         condition: service_healthy
       reranker_service:
         condition: service_healthy
-    # volumes:
-      # - .:/app  # for hot-reload in dev; comment in prod
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/status/', timeout=5).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     restart: unless-stopped
     # networks: [rag-net]
 
@@ -90,9 +93,3 @@ services:
 volumes:
   qdrant_data:
   redis_data:
-
-# Add networks to improve isolation/security
-# Create a shared network so services communicate internally without exposing all ports publicly.
-# networks:
-#   rag-net:
-#     driver: bridge

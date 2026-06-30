@@ -1,12 +1,11 @@
-# 🚀 Hybrid RAG Template: Production-Grade RAG System (FastAPI + Qdrant + Redis)
+# Hybrid RAG Template
 
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
-
-[![FastAPI](https://img.shields.io/badge/FastAPI-Production-green)](https://fastapi.tiangolo.com/)
-
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template built for evaluation, benchmarking, and production deployment. Optimized for low-latency hybrid search (dense + sparse), precise retrieval, and scalable AI infrastructure.
+A production-oriented Retrieval-Augmented Generation template built with FastAPI, Qdrant,
+Redis semantic caching, LiteLLM, and a standalone FastEmbed reranker service.
 
 **Why use this?** Get a production-ready RAG setup with semantic caching, reranking, and LLM-as-judge evals.
 
@@ -14,149 +13,69 @@ A modular, high-performance Hybrid Retrieval-Augmented Generation (RAG) template
 
 ```mermaid
 flowchart TD
-
-%% Entry Layer
-User((User))
-User -->|HTTP Request| API[FastAPI API Gateway<br/>Async RAG Orchestrator]
-
-%% Cache Layer
-API --> CacheCheck{Redis Semantic Cache}
-CacheCheck -->|Cache Hit| CachedResponse[Cached Response]
-CachedResponse --> User
-CacheCheck -->|Cache Miss| Retrieval
-
-%% Retrieval Layer
-subgraph Retrieval_Pipeline
-Retrieval[Query Processing]
-Retrieval --> Embed[Dense Embedding Provider]
-Embed --> HybridSearch
-end
-
-%% Vector Database
-HybridSearch --> Qdrant[(Qdrant Vector DB<br/>Dense + Sparse Index)]
-
-Qdrant --> Candidates[Top-K Retrieved Chunks]
-
-%% Reranker Microservice
-Candidates -->|Async HTTP| RerankerAPI[Reranker Service API]
-
-subgraph Reranker_Service
-RerankerAPI --> BatchQueue[Async Request Queue]
-BatchQueue --> BatchWorkers[Batch Workers Pool]
-BatchWorkers --> BatchBuilder[Pair-Aware Batch Builder<br/>MAX_BATCH_REQUESTS + MAX_BATCH_PAIRS]
-BatchBuilder --> CrossEncoder[Cross-Encoder Model<br/>ONNX Runtime Inference]
-end
-
-CrossEncoder --> Ranked[Top Ranked Chunks]
-
-%% Context Assembly
-Ranked --> Context[Context Builder]
-
-%% Prompt Layer
-Context --> Prompt["Prompt Assembly<br/>(System + Context + Query)"]
-
-%% LLM Router
-Prompt --> Router{LiteLLM Router}
-
-Router -->|Provider Selection| LLM["LLM Provider<br/>(OpenAI / Claude / etc.)"]
-
-%% Post Processing
-LLM --> Guardrails["Output Guardrails<br/>(Grounding + Schema Validation)"]
-
-%% Observability
-Guardrails --> Logger["Structured Logging<br/>Stage Latency + Concurrency Metrics"]
-
-Logger --> CacheWrite[Write to Redis Cache]
-
-CacheWrite --> User
+    User((User)) -->|HTTP| API[FastAPI API]
+    API --> Cache{Redis semantic cache}
+    Cache -->|hit| User
+    Cache -->|miss| Retrieval[Query processing]
+    Retrieval --> Dense[Dense embedding provider]
+    Retrieval --> Sparse[Sparse provider]
+    Dense --> Qdrant[(Qdrant)]
+    Sparse --> Qdrant
+    Qdrant --> Candidates[Retrieved chunks]
+    Candidates --> Reranker[Reranker service]
+    Reranker --> Context[Context builder]
+    Context --> LLM[LLM provider via LiteLLM]
+    LLM --> Logs[Structured logs and trace metadata]
+    Logs --> Cache
+    Cache --> User
 ```
 
-## 🚨 Embedding Model
+## Stack
 
-If embedding model changes, you must:
-- Set the correct dimension size for the embedding model (EMBEDDING_DIM) 
-- Recreate collection
-- Re-ingest documents
+- FastAPI API and lightweight demo UI
+- Qdrant for dense and sparse vector search
+- Redis Stack for semantic response caching
+- LiteLLM for OpenAI, Anthropic, Google, and other providers
+- FastEmbed ONNX reranker in a separate FastAPI service
+- Docker Compose for local and deployment-like testing
+- `uv` for Python dependency management
 
+## Prerequisites
 
-## 🔧 Tech Stack
+- Python 3.12
+- `uv`
+- Docker Compose
 
-- **API Framework**: FastAPI (async, production-ready)
+On macOS, OrbStack is recommended for running this project locally. It has been the most
+reliable option for this template on Mac development machines, especially when building
+and running the multi-service Docker stack. Docker Desktop should also work.
 
-- **Vector Database**: Qdrant (hybrid search support)
+## Quick Start
 
-- **Caching**: Redis (semantic cache for queries/responses)
-
-- **LLM Router**: LiteLLM (provider-agnostic, with logging)
-
-- **Embeddings**: OpenAI Embeddings (configurable)
-
-- **Reranker**: Cross-encoder models via FastEmbed (default: `jinaai/jina-reranker-v1-tiny-en`, ONNX-optimized)
-
-- **Containerization**: Docker + Docker Compose
-
-
-## 📦 Production Optimizations
-
-- No PyTorch dependency (pure ONNX for reranker)
-
-- Excluded Hugging Face cache from Docker layers
-
-- Multi-stage Docker build for minimal footprint
-
-- CPU-optimized inference (no GPU required)
-
-- Built-in LLM-as-Judge evaluation for grounding checks
-
-- Strict `.dockerignore` to avoid bloat
-
-## 🚀 Quick Start
-
-**Prerequisites**: Docker and Docker Compose installed.
-
-1. Clone the Repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/rayxcast/hybrid-rag-template.git
-
 cd hybrid-rag-template
 ```
 
-2. Install dependencies (uv recommended)
+Create your environment file:
 
-# For the main app + evaluation
 ```bash
-uv sync  # installs from pyproject.toml + creates uv.lock
+cp .env.example .env
 ```
 
-# For the reranker microservice
-```bash
-uv sync --directory services/reranker_service
-```
-
-3. Create `.env` File
+Edit `.env` and set at least one provider key. For OpenAI:
 
 ```env
-OPENAI_API_KEY=your_key_here
-
-RETRIEVAL_MODE=hybrid  # or 'dense'
+OPENAI_API_KEY=your_openai_key
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4.1-mini
+DENSE_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIM=1536
+RETRIEVAL_MODE=hybrid
 ```
-
-4. Start with Docker Compose (recommended)
-
-```bash
-docker compose up --build
-```
-
-- API: http://localhost:8000 (try `/docs` for Swagger UI)
-
-- Qdrant Dashboard: http://localhost:6333/dashboard
-
-- Redis: localhost:6379 (use Redis Insight for monitoring)
-
-## 🎥 Demo UI
-
-This repo includes a lightweight web UI for recording an upload → ingest → ask workflow without using Swagger.
 
 Start the stack:
 
@@ -164,36 +83,53 @@ Start the stack:
 docker compose up --build
 ```
 
-Open the demo UI:
+Open:
 
-```text
-http://localhost:8000/
+- Demo UI: http://localhost:8000/
+- Swagger UI: http://localhost:8000/docs
+- Status endpoint: http://localhost:8000/status/
+
+Follow logs:
+
+```bash
+docker compose logs -f app reranker_service
 ```
 
-Use the page to:
+Stop the stack:
 
-- Upload a PDF, TXT, or MD file.
-- Optionally check **Reset index before ingesting** to recreate the Qdrant collection before indexing the uploaded document.
-- Click **Ingest document** and wait for the success summary.
-- Ask questions once ingestion succeeds, or immediately if the UI detects an existing populated Qdrant index.
+```bash
+docker compose down
+```
 
-The UI calls:
+To remove local Qdrant and Redis data volumes too:
 
-- `POST /ingest/` with multipart form data containing `file` and `recreate`.
-- `POST /query/` with JSON shaped like `{ "query": "..." }`.
-- `GET /status/` to detect whether an index is already available.
+```bash
+docker compose down -v
+```
 
-Known limitations:
+## Demo Workflow
 
-- The current ingestion loader supports PDF, TXT, and MD in practice.
-- Query responses currently return `answer`, `sources`, `mode`, and cache fields. Richer chunk, SPLADE, hybrid, or rerank metadata will display automatically if the backend returns it later.
-- Large PDFs can take time to ingest because embedding, SPLADE sparse vectors, and indexing are CPU/network intensive.
+The demo UI supports a simple upload, ingest, and ask flow:
 
-## 🆓 Google / Gemini Demo Mode
+- Upload a PDF, TXT, or Markdown file.
+- Optionally select **Reset index before ingesting** to recreate the Qdrant collection.
+- Click **Ingest document**.
+- Ask questions once the index is ready.
 
-You can run the same FastAPI routes and demo UI with Google AI Studio / Gemini instead of OpenAI. Create a Gemini API key in Google AI Studio, then set the provider values in `.env`.
+The UI calls these API routes:
 
-Recommended no-cost demo configuration:
+- `POST /ingest/` with multipart form data containing `file` and `recreate`
+- `POST /query/` with JSON shaped like `{ "query": "..." }`
+- `GET /status/` to check collection and index readiness
+
+Large PDFs can take time to ingest because embedding, sparse vector generation, and
+indexing are CPU and network intensive.
+
+## Gemini Demo Mode
+
+You can run the same stack with Google AI Studio / Gemini instead of OpenAI.
+
+Recommended `.env` values:
 
 ```env
 GOOGLE_API_KEY=your_google_ai_studio_key
@@ -211,340 +147,215 @@ EMBED_BATCH_SIZE=100
 RETRIEVAL_MODE=hybrid
 ```
 
-Short-term fallback if needed:
+When switching embedding providers, models, or dimensions:
 
-```env
-LLM_MODEL=gemini-2.0-flash
+- Recreate or rename the Qdrant collection.
+- Re-ingest documents.
+- Clear Redis or set `USE_CACHE=false`.
+
+Embedding spaces are not interchangeable, and semantic cache vectors are provider-specific.
+
+## Docker Notes
+
+The default Compose file is production-style rather than hot-reload development mode:
+
+- `app` is exposed on `localhost:8000`.
+- Qdrant, Redis, and the reranker service are internal-only by default.
+- Qdrant and Redis use named volumes for persistence.
+- The app and reranker images run as a non-root user.
+- App and service containers include healthchecks.
+
+To inspect Qdrant or Redis from the host during local debugging, temporarily add port
+mappings or use a Compose override file. For example:
+
+```yaml
+services:
+  qdrant:
+    ports:
+      - "6333:6333"
+  redis:
+    ports:
+      - "6379:6379"
+  reranker_service:
+    ports:
+      - "8001:8001"
 ```
 
-As of May 20, 2026, Google lists `gemini-2.0-flash` as deprecated with shutdown on June 1, 2026, so prefer `gemini-2.5-flash` for demos.
-
-Start the app as usual:
-
-```bash
-docker compose up --build
-```
-
-Then open:
+Then open the Qdrant dashboard at:
 
 ```text
-http://localhost:8000/
+http://localhost:6333/dashboard
 ```
 
-Important switching notes:
-
-- Re-ingest documents after changing `DENSE_PROVIDER`, `EMBEDDING_MODEL`, or `EMBEDDING_DIM`; embedding spaces are not interchangeable.
-- Use **Reset index before ingesting** in the demo UI, or set a different `COLLECTION_NAME`, to avoid mixing OpenAI and Gemini vectors in the same Qdrant collection.
-- Clear Redis or set `USE_CACHE=false` when switching embedding providers, because semantic cache vectors are also provider-specific.
-- For the lowest Google free-tier request count during a demo, set `USE_CACHE=false`. With cache enabled, a cache-miss query may call Gemini for semantic cache lookup, retrieval embedding, cache write, and answer generation.
-- Google free tier is meant for development and may use submitted content to improve Google products. Check Google AI Studio terms before uploading sensitive documents.
-
-## 🔎 Demo Tracing & Logs
-
-Every ingest and query request gets a `request_id`. The API returns it in the `X-Request-ID` response header and in the compact `trace` object shown by the demo UI.
-
-For readable local logs:
-
-```env
-LOG_FORMAT=console
-LOG_LEVEL=INFO
-```
-
-For JSON logs:
-
-```env
-LOG_FORMAT=json
-LOG_LEVEL=INFO
-```
-
-Follow logs during a demo:
+Build images manually:
 
 ```bash
-docker compose logs -f app reranker_service
+docker compose build app reranker_service
 ```
 
-Trace responses include providers, models, retrieval mode, top-k, chunk IDs, source metadata, scores when available, latency timings, cache status, estimated provider calls, and rough-edge warnings. API keys, auth headers, tokens, and secrets are redacted from structured logs.
+Validate Compose configuration:
 
-Google AI Studio quota note: a single user question is not always a single Google API request. With semantic cache enabled and a cache miss, the app can make separate requests for cache lookup embedding, retrieval query embedding, cache storage embedding, and LLM generation. The app reuses the cache lookup embedding for cache storage when possible, and the trace panel shows estimated external calls.
+```bash
+docker compose config
+```
 
+Important: `docker compose config` expands values from `.env`, including API keys. Do
+not paste its full output into issues, chats, logs, or documentation.
 
-## 🧪 Run Evaluation Suite
+## Local Python Development
 
-Evaluate retrieval, generation, and grounding on a 25-question benchmark (adversarial, unanswerable, etc.) using Alphabet 10-k Annual Report 2026 PDF (https://abc.xyz/investor/sec-filings/).
+Install main app dependencies:
+
+```bash
+uv sync
+```
+
+Install reranker service dependencies:
+
+```bash
+uv sync --directory services/reranker_service
+```
+
+Run lint checks:
+
+```bash
+uv run ruff check .
+```
+
+Run tests:
+
+```bash
+uv run python -m pytest
+```
+
+If local `uv` commands fail because `.venv` points to an old checkout path, recreate the
+environment:
+
+```bash
+rm -rf .venv
+uv sync
+```
+
+## Evaluation
+
+Run the evaluation job through Docker:
 
 ```bash
 docker compose run --rm eval
 ```
 
-**Outputs Include**:
+Evaluation outputs include retrieval metrics, generation/judge latency, per-case results,
+and a JSON report under `eval_results/`.
 
-- Retrieval recall/precision
+## Configuration
 
-- Latency breakdowns (retrieval, rerank, generation, judge)
+Configuration is loaded from `.env` through `app/config.py`.
 
-- Pass/fail per case (96% accuracy achieved)
+Common settings:
 
-- Total execution time
-
-Example: Achieves strict factual grounding with LLM-as-judge.
-
-
-## 📊 Performance Benchmarks
-
-Evaluated in a Docker container (Linux x86_64 emulation) on host:
-- MacBook Pro (2.9 GHz 6-Core Intel Core i9, 32 GB RAM)
-- Local CPU only (no GPU acceleration)
-
-**LLM models**:
-- Generation: OpenAI gpt-4.1-mini
-- Judge: OpenAI gpt-4.1-nano
-
-**Retrieval config**:
-- Chunk size: 512 tokens
-- Similarity top-k: 75
-- Similarity cutoff: 0.75
-
-**Reranker config**:
-- Model: fastembed / jinaai/jina-reranker-v1-tiny-en
-- Rerank top-n: 25
-- Final context chunks: 7
-
-**Test suite** (25 cases total):
-- 5 adversarial
-- 5 unanswerable
-- 5 paraphrased
-- 5 multi-hop
-- 5 numerical precision
-
-**Results** (March 2026 run):
-
-| Metric                  | Value                  |
-|-------------------------|------------------------|
-| Total Accuracy (judge-passed) | 100.00%               |
-| Avg Retrieval Time      | ~1.91 s                |
-| Avg Rerank Time         | ~4.38 s                |
-| Avg Generation Time     | ~2.06 s                |
-| Avg Judge Time          | ~1.87 s                |
-| End-to-End Latency (with judge) | ~9–11 s             |
-| End-to-End Latency (inference only) | ~6–9 s           |
-
-This 100% judge-pass rate demonstrates strong faithfulness and precision across diverse question types, even on CPU-only hardware. Latencies are dominated by the reranker (CPU-bound); production deployments with GPU or lighter rerank could reduce total time significantly.
-
-
-## 🗂 Project Structure
-
-```
-└── 📁hybrid-rag-template
-    └── 📁app
-        └── 📁api
-            └── 📁endpoints
-                ├── ingest.py
-                ├── query.py
-        └── 📁core
-            └── 📁observability
-                ├── timing.py
-        └── 📁evaluation
-            ├── eval_dataset.py
-            ├── evaluator.py
-            ├── run_eval.py
-        └── 📁rag
-            └── 📁embedding_providers
-                └── 📁dense
-                    ├── base.py
-                    ├── factory.py
-                    ├── openai_provider.py
-                └── 📁sparse
-                    ├── base.py
-                    ├── factory.py
-                    ├── splade_provider.py
-            └── 📁reranker_providers
-                ├── base.py
-                ├── factory.py
-                ├── fastembed_reranker.py
-                ├── remote_reranker.py
-            └── 📁vectorstores
-                ├── base.py
-                ├── factory.py
-                ├── qdrant_hybrid.py
-            ├── generator.py
-            ├── hybrid_indexer.py
-            ├── ingestion.py
-            ├── pipeline.py
-            ├── prompts.yaml
-            ├── retriever.py
-        └── 📁utils
-            ├── cache.py
-            ├── logging.py
-        ├── config.py
-        ├── main.py
-    └── 📁data
-    └── 📁eval_results
-        ├── eval_results.json
-    └── 📁services
-        └── 📁reranker_service
-            └── 📁app
-                ├── config.py
-                ├── main.py
-            ├── .dockerignore
-            ├── Dockerfile
-            ├── pyproject.toml
-            ├── uv.lock
-    ├── .dockerignore
-    ├── .gitignore
-    ├── docker-compose.yml
-    ├── Dockerfile
-    ├── LICENSE
-    ├── pyproject.toml
-    ├── README.md
-    └── uv.lock
-```
-
-## ⚙️ Configuration
-
-Tune via `.env` or `config.py`:
-
-App/logging
 - `LOG_LEVEL`
 - `LOG_FORMAT`
-
-RAG Settings
 - `RETRIEVAL_MODE`
 - `LLM_PROVIDER`
 - `LLM_MODEL`
 - `LLM_MAX_TOKENS`
 - `LLM_CONTEXT_WINDOW`
-- `USE_RERANKER`
-- `USE_CACHE`
-
-Dense provider
 - `DENSE_PROVIDER`
 - `EMBEDDING_MODEL`
-- `EMBED_BATCH_SIZE`
-
-- `CHUNK_SIZE`
-- `CHUNK_OVERLAP`
 - `EMBEDDING_DIM`
+- `EMBED_BATCH_SIZE`
+- `USE_RERANKER`
+- `USE_CACHE`
+- `QDRANT_URL`
+- `REDIS_URL`
+- `RERANKER_URL`
+- `COLLECTION_NAME`
 
-Sparse provider
-- `SPARSE_PROVIDER`
-- `SPARSE_MODEL`
+Default Docker service URLs:
 
-Reranker provider
-- `RERANKER_PROVIDER`
-- `RERANKER_MODEL`
-
-Retrieval config
-- `SIMILARITY_TOP_K`
-- `SIMILARITY_CUTOFF`
-- `RERANK_TOP_N`
-- `FINAL_CONTEXT_N`
-    
-Evals config
-- `EVAL_LLM_MODEL`
-- `EVAL_LLM_PROVIDER`
-
-
-
-## 🧠 Design Decisions
-
-### Why FastEmbed for Reranker?
-
-- Lightweight, fast, and CPU-efficient (ONNX runtime)
-
-- Minimal accuracy trade-off vs. heavier models
-
-- No PyTorch overhead
-
-### Top FastEmbed Rerank Models
-
-| Model | Size | Speed | Quality (approx. relative) | Multilingual | License | Best for |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Xenova/ms-marco-MiniLM-L-6-v2 | ~80 MB | Very fast | Good / baseline | English-focused | Apache 2.0 | Latency-critical, small infra |
-| Xenova/ms-marco-MiniLM-L-12-v2 | ~120 MB | Fast | Good+ | English-focused | Apache 2.0 | Slightly better quality, still fast |
-| jinaai/jina-reranker-v1-tiny-en | ~130 MB | Very fast | Good | English | Apache 2.0 | Ultra-low latency English |
-| jinaai/jina-reranker-v1-turbo-en | ~150 MB | Fast | Good+ | English | Apache 2.0 | Fast English with better quality |
-| BAAI/bge-reranker-base | ~1.04 GB | Medium | Very good | Strong multi | MIT | Balanced production choice |
-| jinaai/jina-reranker-v2-base-multilingual | ~1.1 GB | Medium | Excellent | Very strong | CC-BY-NC-4.0 | Multilingual production (non-commercial only if strict) |
-
-
-### Why Redis for Caching?
-
-- Semantic caching reduces redundant LLM calls (hash(query) → response + context)
-
-- High-speed, in-memory for low-latency hits
-
-
-### Why LiteLLM?
-
-- Abstracts LLM providers for easy switching
-
-- Built-in logging and cost tracking
-
-- Production-grade error handling
-
-
-### Why LLM-as-Judge for Eval?
-
-- Context-aware metrics (e.g., grounding, completeness)
-
-- Scalable, cost-effective, and explainable
-
-- Achieves 100% accuracy on custom benchmarks
-
-
-## 🐳 Docker Notes
-
-- Multi-stage build for slim runtime image
-
-- Non-root user for security
-
-- No cached artifacts in final layers
-
-
-Build manually:
-
-```bash
-docker build -t rag-app .
-docker images  # Verify size
+```env
+QDRANT_URL=http://qdrant:6333
+REDIS_URL=redis://redis:6379/0
+RERANKER_URL=http://reranker:8001
 ```
 
+## Production Readiness
 
-## 🧪 Scaling Strategy
+This repository is structured as a production-oriented template, but the default API is
+not a complete secured production deployment by itself.
 
-- Scale FastAPI with replicas (e.g., via Kubernetes)
+Already included:
 
-- Use managed Qdrant Cloud for distributed search
+- Multi-stage Docker builds
+- Non-root application containers
+- Internal service networking by default
+- Pinned stateful service image tags
+- Structured request logging with request IDs
+- Redis semantic cache
+- Qdrant persistence through named volumes
+- Reranker service isolation
 
-- Enable Redis clustering for cache
+Recommended before internet-facing production use:
 
-- Add async response streaming
+- Add authentication or API-key middleware.
+- Add rate limits and request size limits.
+- Restrict or remove arbitrary local path ingestion.
+- Add stricter file validation for uploads.
+- Add tracked unit/integration tests and CI.
+- Add metrics, dashboards, and deployment runbooks.
+- Publish versioned application images from CI.
 
-- Deploy with NGINX or cloud LB for traffic
+## Project Structure
 
+```text
+app/
+  api/endpoints/        FastAPI routes
+  core/observability/   Timing helpers
+  evaluation/           Evaluation dataset and runner
+  rag/                  Retrieval, generation, embedding, reranking, vector store logic
+  static/               Demo UI
+  utils/                Logging and cache helpers
+services/
+  reranker_service/     Standalone FastAPI reranker service
+Dockerfile              Main API image
+docker-compose.yml      Multi-service runtime
+pyproject.toml          Main app dependencies and tooling
+```
 
-## 🚀 Roadmap / Future Enhancements
+## Troubleshooting
 
-- Rate limiting middleware
+If the app starts but queries fail, check provider credentials and model names in `.env`.
 
-- Health check endpoints
+If ingestion succeeds but retrieval looks wrong after changing embedding settings, recreate
+the collection, clear Redis, and re-ingest documents.
 
-- CI/CD with benchmark reports
+If Docker builds are flaky on macOS, try OrbStack and rebuild:
 
-- Observability (Sentry/Prometheus)
+```bash
+docker compose build --no-cache app reranker_service
+docker compose up
+```
 
-- Authentication layer (API keys/JWT)
+If Redis or Qdrant state looks stale:
 
+```bash
+docker compose down -v
+docker compose up --build
+```
 
-## 🤝 Contributing
+## Roadmap
 
-Contributions welcome! Fork the repo, create a feature branch, and submit a PR. Follow standard Python/PEP8 style.
+- CI with lint, tests, and Docker build checks
+- API authentication and rate limiting
+- Upload size/type validation
+- Production metrics and tracing
+- Deployment examples for managed Qdrant and Redis
+- Versioned image publishing
 
-
-## 📝 License
+## License
 
 MIT
 
-
-## 👤 Author
+## Author
 
 Built by Randy Castillo ([GitHub](https://github.com/rayxcast), [LinkedIn](https://www.linkedin.com/in/randycastillo-/)).
